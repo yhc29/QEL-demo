@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An interactive walkthrough of Algorithms 1–3 for the QEL core query engine.">
+<title>QEL Core Algorithms 1–3 — Interactive Walkthrough</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318212b'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='20' font-weight='700' fill='white' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f2f4f5;
+    --paper: #fbfcfc;
+    --paper-2: #edf1f2;
+    --ink: #172126;
+    --ink-soft: #3e4b52;
+    --muted: #718089;
+    --line: #dce3e5;
+    --line-strong: #c6d0d4;
+    --accent: #3f6575;
+    --accent-dark: #2f4f5c;
+    --accent-soft: #e7eef1;
+    --ok: #3f6b59;
+    --ok-soft: #eef4f1;
+    --bad: #8a4f48;
+    --bad-soft: #f7efed;
+    --blue: #45647b;
+    --red: #7c5b57;
+    --purple: #65617c;
+    --green: #4a6d5e;
+    --radius: 3px;
+    --max: 1180px;
+    --sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--bg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:hover { color: var(--accent-dark); }
+  code, pre, .mono { font-family: var(--mono); }
+  .wrap { width: min(var(--max), calc(100% - 48px)); margin: 0 auto; }
+  .skip {
+    position: absolute; left: -999px; top: 8px; z-index: 100;
+    background: var(--ink); color: #fff; padding: 9px 12px; border-radius: var(--radius);
+  }
+  .skip:focus { left: 8px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(242,244,245,.94);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  .topbar-inner { display: flex; align-items: center; gap: 24px; min-height: 60px; }
+  .brand {
+    display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink);
+    margin-right: auto;
+  }
+  .brand-mark {
+    display: grid; place-items: center;
+    width: 28px; height: 28px; border-radius: 2px;
+    background: var(--ink); color: var(--paper);
+    font: 500 14px/1 var(--mono);
+  }
+  .brand b { display: block; font-size: 13px; font-weight: 650; letter-spacing: .01em; }
+  .brand small { display: block; color: var(--muted); font: 500 9.5px/1.5 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+  .topnav { display: flex; gap: 22px; align-items: center; }
+  .topnav a { color: var(--muted); text-decoration: none; font: 500 12px/1.2 var(--sans); }
+  .topnav a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    border: 1px solid transparent; border-radius: 2px; padding: 9px 14px;
+    font: 600 12px/1.2 var(--sans); text-decoration: none; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { color: #fff; background: var(--accent-dark); }
+  .btn-small { padding: 7px 11px; font-size: 11.5px; }
+  .hero { padding: 78px 0 30px; }
+  .eyebrow {
+    color: var(--muted); font: 500 10px/1.4 var(--mono);
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  h1, h2, h3 { font-family: var(--sans); font-weight: 500; }
+  h1 {
+    max-width: 900px; margin: 18px 0 20px;
+    font-size: clamp(44px, 6.4vw, 68px); line-height: 1; letter-spacing: -.045em;
+  }
+  .lede { max-width: 680px; margin: 0; color: var(--ink-soft); font-size: clamp(16px, 1.8vw, 18px); line-height: 1.6; }
+  .record-panel {
+    display: grid; grid-template-columns: 112px minmax(0,1fr); gap: 28px;
+    margin: 38px 0 0; padding: 20px 0;
+    border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line);
+  }
+  .record-id span, .record-id small { display: block; color: var(--muted); font: 500 9.5px/1.5 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .record-id strong { display: block; margin: 5px 0 2px; font: 500 24px/1 var(--sans); letter-spacing: -.03em; }
+  .record-data { min-width: 0; }
+  .record-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 7px; border-radius: 2px; border: 1px solid var(--line);
+    background: transparent; color: var(--ink-soft);
+    font: 500 11px/1.3 var(--mono);
+  }
+  .chip b { font-weight: 700; }
+  .chip.label-s b { color: var(--blue); }
+  .chip.label-t b { color: var(--red); }
+  .chip.label-c b { color: var(--purple); }
+  .chip.label-p b { color: var(--green); }
+  .record-formula {
+    margin-top: 13px; overflow-x: auto; white-space: nowrap;
+    color: var(--ink-soft); font-family: "STIX Two Math", "Cambria Math", "Times New Roman", ui-serif, Georgia, serif;
+    font-size: 17px;
+  }
+  .record-formula code { font-family: inherit; }
+  .record-foot { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 10px; color: var(--muted); font: 500 11px/1.5 var(--mono); }
+  .record-foot strong { color: var(--ink-soft); font-weight: 600; }
+  section { margin-bottom: 104px; scroll-margin-top: 80px; }
+  .algo-head {
+    display: grid; grid-template-columns: 38px minmax(0,1fr); gap: 16px; align-items: start;
+    margin-bottom: 24px; padding-top: 18px; border-top: 1px solid var(--line-strong);
+  }
+  .algo-number {
+    padding-top: 5px; color: var(--accent);
+    font: 500 11px/1.4 var(--mono); letter-spacing: .08em;
+  }
+  .kicker { color: var(--muted); font: 500 9.5px/1.5 var(--mono); letter-spacing: .13em; text-transform: uppercase; margin-bottom: 7px; }
+  h2 { margin: 0; font-size: clamp(28px, 3.4vw, 36px); line-height: 1.1; letter-spacing: -.035em; }
+  .algo-head p { max-width: 620px; margin: 9px 0 0; color: var(--muted); font-size: 14px; }
+  .algo-layout { display: grid; grid-template-columns: minmax(0,.88fr) minmax(0,1.12fr); gap: 24px; align-items: start; }
+  .panel {
+    min-width: 0; padding: 22px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  .panel-label {
+    display: block; margin-bottom: 16px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted); font: 500 9.5px/1.4 var(--mono); letter-spacing: .13em; text-transform: uppercase;
+  }
+  .panel-label.live { color: var(--accent); }
+  pre.pseudo {
+    margin: 0; padding: 17px 18px; overflow-x: auto;
+    background: #202a2f; color: #d5e0e4; border: 1px solid #202a2f; border-radius: 2px;
+    font-size: 11.3px; line-height: 1.75; white-space: pre;
+  }
+  pre.pseudo .c { color: #7e8f97; }
+  pre.pseudo .kw { color: #9fc2cf; }
+  pre.pseudo .fn { color: #e1eaed; }
+  pre.pseudo .n { color: #b9c7cc; }
+  .pseudo-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .demo-controls {
+    display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px;
+    margin-bottom: 14px;
+  }
+  .demo-controls.two { grid-template-columns: 1fr; align-items: start; }
+  .field { min-width: 0; }
+  .field label { display: block; margin-bottom: 6px; color: var(--muted); font: 500 9.5px/1.4 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+  .field select, .field input {
+    width: 100%; min-height: 38px; padding: 8px 10px;
+    border: 1px solid var(--line-strong); border-radius: 2px;
+    background: #fff; color: var(--ink);
+    font: 500 12.5px/1.3 var(--sans);
+  }
+  .field select:focus, .field input:focus, .stage-btn:focus-visible, .preset:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .field.disabled { opacity: .45; }
+  .field.disabled input { background: var(--paper-2); }
+  .preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+  .preset {
+    border: 1px solid var(--line); border-radius: 2px; padding: 5px 8px;
+    background: transparent; color: var(--ink-soft); font: 500 10.5px/1.2 var(--mono); cursor: pointer;
+  }
+  .preset:hover { border-color: var(--accent); color: var(--accent); }
+  .ie-stage { display: grid; gap: 9px; }
+  .ie-block { padding: 12px 13px; border: 1px solid var(--line); border-radius: 2px; background: var(--bg); }
+  .ie-block.result { border-color: var(--accent); background: var(--accent-soft); }
+  .ie-label { display: block; margin-bottom: 7px; color: var(--muted); font: 500 9.5px/1.4 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+  .ie-line { display: flex; flex-wrap: wrap; gap: 5px; min-height: 26px; align-items: center; }
+  .ie-chip {
+    display: inline-flex; align-items: center; padding: 3px 6px;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--paper);
+    color: var(--ink-soft); font: 500 11.5px/1.3 var(--mono);
+  }
+  .ie-chip.label-s { border-color: var(--blue); color: var(--blue); }
+  .ie-chip.label-t { border-color: var(--red); color: var(--red); }
+  .ie-chip.label-c { border-color: var(--purple); color: var(--purple); }
+  .ie-chip.label-p { border-color: var(--green); color: var(--green); }
+  .ie-empty { color: var(--muted); font: 500 12px/1.3 var(--mono); }
+  .ie-op {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 0 2px; color: var(--accent); font: 500 11px/1.4 var(--mono);
+  }
+  .ie-op small { color: var(--muted); font: 400 11px/1.4 var(--sans); text-align: right; }
+  .ie-meta { margin: 11px 0 0; color: var(--muted); font: 500 10.5px/1.5 var(--mono); }
+  .stage-rail { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; margin: 0; }
+  .stage-btn {
+    border: 1px solid var(--line); border-radius: 2px; padding: 7px 3px;
+    background: transparent; color: var(--ink-soft); font: 500 10px/1.2 var(--sans); cursor: pointer;
+    min-width: 0; text-align: center;
+  }
+  .stage-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .stage-btn:hover { border-color: var(--ink-soft); }
+  .stage-note { min-height: 34px; margin: 11px 0 12px; color: var(--ink-soft); font-size: 12px; }
+  .stage-note strong { color: var(--ink); font-weight: 600; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font: 500 9px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; background: var(--bg); }
+  tr:last-child td { border-bottom: 0; }
+  td code, th code { font-size: 11px; }
+  .formula-cell { line-height: 1.55; }
+  .formula-cell code { white-space: normal; overflow-wrap: break-word; }
+  .alg2-table { table-layout: fixed; }
+  .alg2-table th { text-transform: none; letter-spacing: .01em; font-size: 9.5px; }
+  .alg2-table th:first-child, .alg2-table td:first-child { width: 32%; white-space: nowrap; }
+  .pass { color: var(--ok); font-weight: 650; }
+  .fail { color: var(--bad); font-weight: 650; }
+  .qe-value { display: block; font: 600 11.5px/1.3 var(--mono); }
+  .qe-reason { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+  .decision {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 12px;
+    margin-top: 14px; padding: 12px 14px;
+    border: 1px solid var(--line); border-left: 2px solid var(--accent); border-radius: 2px;
+    background: var(--paper-2); font-size: 12px;
+  }
+  .decision strong { font: 600 11px/1.3 var(--mono); }
+  .decision.ok { border-left-color: var(--ok); background: var(--ok-soft); color: #2f5848; }
+  .decision.bad { border-left-color: var(--bad); background: var(--bad-soft); color: #6f3d37; }
+  .decision span { color: var(--ink-soft); }
+  .fine-print { margin: 11px 0 0; color: var(--muted); font-size: 10.5px; line-height: 1.55; }
+  .scan-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 16px; }
+  .scan-stat { padding-top: 10px; border-top: 1px solid var(--line-strong); }
+  .scan-stat strong { display: block; font: 500 28px/1.05 var(--sans); letter-spacing: -.04em; }
+  .scan-stat span { display: block; margin-top: 4px; color: var(--muted); font: 500 8.5px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .scan-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .scan-status { color: var(--muted); font-size: 11px; }
+  .boundary-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .boundary-line > span { color: var(--muted); font: 500 8.5px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .boundary-line code { padding: 2px 5px; border-radius: 2px; background: var(--paper-2); color: var(--ink-soft); font-size: 10.5px; }
+  .scan-table { min-width: 560px; }
+  .scan-table td { font-family: var(--mono); font-size: 10.5px; }
+  .scan-table td:first-child { font-weight: 600; }
+  .scan-table td.points-cell { white-space: nowrap; font-size: 10.5px; }
+  .scan-table tr.is-match td { background: #f3f7f6; }
+  .scan-table td.support-cell { max-width: 250px; overflow-wrap: anywhere; font-size: 9.5px; }
+  .scan-section td { background: var(--bg); color: var(--muted); font: 500 9px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: 11px; }
+  .footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: baseline; }
+  .footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
+  .footer a { color: var(--ink-soft); text-decoration: none; }
+  .footer a:hover { color: var(--accent); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (max-width: 1040px) {
+    .algo-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 980px) {
+    .topnav { display: none; }
+  }
+  @media (max-width: 680px) {
+    .wrap { width: min(var(--max), calc(100% - 28px)); }
+    .hero { padding-top: 48px; }
+    .record-panel { grid-template-columns: 1fr; gap: 12px; padding: 16px 0; }
+    .record-id span, .record-id small { display: inline; margin-right: 8px; }
+    .algo-head { grid-template-columns: 28px minmax(0,1fr); gap: 10px; }
+    .algo-number { font-size: 10px; }
+    .panel { padding: 16px; }
+    .demo-controls, .demo-controls.two { grid-template-columns: 1fr; }
+    .ie-op { align-items: flex-start; flex-direction: column; }
+    .ie-op small { text-align: left; }
+    .scan-stat strong { font-size: 22px; }
+    .scan-stat span { font-size: 8px; }
+    .scan-table { min-width: 0; }
+    .scan-table thead { display: none; }
+    .scan-table, .scan-table tbody, .scan-table tr, .scan-table td { display: block; }
+    .scan-table tr {
+      display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 2px 10px; padding: 10px 12px; border-bottom: 1px solid var(--line);
+    }
+    .scan-table tr:last-child { border-bottom: 0; }
+    .scan-table tr.is-match { background: #f3f7f6; }
+    .scan-table td { padding: 0; border: 0; }
+    .scan-table td:nth-child(1) { grid-column: 1 / -1; margin-bottom: 3px; white-space: normal; }
+    .scan-table td:nth-child(2)::before { content: "a "; color: var(--muted); }
+    .scan-table td:nth-child(3)::before { content: "b "; color: var(--muted); }
+    .scan-table td:nth-child(4)::before { content: "c "; color: var(--muted); }
+    .scan-table td:nth-child(5) { grid-column: 1 / -1; margin-top: 5px; }
+    .scan-table td:nth-child(5)::before { content: "support at x: "; color: var(--muted); }
+    .scan-table td:nth-child(6) { grid-column: 1 / -1; }
+    .scan-table td:nth-child(6)::before { content: "decision: "; color: var(--muted); }
+    .scan-table td.scan-section { grid-column: 1 / -1; padding: 0; background: transparent; }
+    .scan-table td.support-cell { max-width: none; }
+    .footer-inner { flex-direction: column; }
+  }
+  @media print {
+    .topbar, .hero .btn, .preset-row, .stage-rail, #a3Run, .footer { display: none; }
+    body { background: #fff; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="qel-reproducibility.html" aria-label="QEL BEST reproducibility guide">
+      <span class="brand-mark">Q</span>
+      <span><b>QEL / BEST</b><small>Core algorithms</small></span>
+    </a>
+    <nav class="topnav" aria-label="Algorithm navigation">
+      <a href="#algorithm-1">Algorithm 1</a>
+      <a href="#algorithm-2">Algorithm 2</a>
+      <a href="#algorithm-3">Algorithm 3</a>
+    </nav>
+    <a class="btn btn-primary btn-small" href="qel-playground.html">Open playground →</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap">
+    <div class="eyebrow">Core query engine · interactive walkthrough</div>
+    <h1>Algorithms 1–3, on one record.</h1>
+    <p class="lede">A working trace of the three core algorithms on record P01: interval primitives, model checking, and finite evidence.</p>
+
+    <div class="record-panel" aria-label="Running example P01">
+      <div class="record-id">
+        <span>Running record</span>
+        <strong>P01</strong>
+        <small>base PGES</small>
+      </div>
+      <div class="record-data">
+        <div class="record-chips">
+          <span class="chip label-s"><b>S</b> [10, 70]</span>
+          <span class="chip label-t"><b>T</b> [10, 30]</span>
+          <span class="chip label-c"><b>C</b> [32, 68]</span>
+          <span class="chip label-p"><b>P</b> [70, 115]</span>
+        </div>
+        <div class="record-formula">
+          <code>φ ≡ □<sub>a+b</sub>S ∧ ◊<sub>a</sub>T ∧ (◊<sub>b</sub>C)<sub>a</sub> ∧ (□<sub>c</sub>P)<sub>a+b</sub></code>
+        </div>
+        <div class="record-foot">
+          <span><strong>Witness:</strong> x = 10, a = 20, b = 40, c = 45</span>
+          <span><strong>Observation points:</strong> 10 → 30 → 70 → 115</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="algorithm-1" aria-labelledby="a1-title">
+    <div class="algo-head">
+      <div class="algo-number" aria-hidden="true">1</div>
+      <div>
+        <div class="kicker">Primitives</div>
+        <h2 id="a1-title">Transform one interval ensemble</h2>
+        <p>Four primitives, each ending in normalization.</p>
+      </div>
+    </div>
+
+    <div class="algo-layout">
+      <article class="panel">
+        <span class="panel-label">Pseudocode</span>
+        <pre class="pseudo"><span class="kw">function</span> <span class="fn">DISPLACEMENT</span>(δ, q)
+  subtract q <span class="kw">from</span> every finite boundary
+  preserve closure marks
+  <span class="kw">return</span> <span class="fn">NORMALIZE</span>(δ)
+
+<span class="kw">function</span> <span class="fn">DILATION</span>(δ, r)
+  <span class="kw">for</span> each interval endpoint pair
+    subtract r <span class="kw">from</span> the left endpoint
+    set that closure mark to 0
+  <span class="kw">return</span> <span class="fn">NORMALIZE</span>(δ)
+
+<span class="kw">function</span> <span class="fn">EROSION</span>(δ, r)
+  <span class="kw">for</span> each interval endpoint pair
+    subtract r <span class="kw">from</span> the right endpoint
+    set that closure mark to 1
+  <span class="kw">return</span> <span class="fn">NORMALIZE</span>(δ)
+
+<span class="kw">function</span> <span class="fn">COMPLEMENT</span>(δ)
+  add the missing exterior endpoints
+  flip open and closed marks
+  <span class="kw">return</span> <span class="fn">NORMALIZE</span>(δ)</pre>
+        <p class="pseudo-note">Normalization removes empty intervals and merges overlapping or adjacent compatible intervals.</p>
+      </article>
+
+      <article class="panel">
+        <span class="panel-label live">Live demo</span>
+        <div class="demo-controls">
+          <div class="field">
+            <label for="a1Label">Support</label>
+            <select id="a1Label">
+              <option value="S">S · seizure</option>
+              <option value="T">T · tonic</option>
+              <option value="C">C · clonic</option>
+              <option value="P">P · EEG suppression</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="a1Op">Operation</label>
+            <select id="a1Op">
+              <option value="displace">Displacement</option>
+              <option value="dilate">Dilation</option>
+              <option value="erode" selected>Erosion</option>
+              <option value="complement">Complement</option>
+            </select>
+          </div>
+          <div class="field" id="a1ParamWrap">
+            <label for="a1Param"><span id="a1ParamName">Radius r</span></label>
+            <input id="a1Param" type="number" step="0.5" value="60" inputmode="decimal">
+          </div>
+        </div>
+
+        <div class="preset-row" aria-label="Operation presets">
+          <button class="preset" type="button" data-label="S" data-op="erode" data-param="60">□<sub>60</sub>S</button>
+          <button class="preset" type="button" data-label="T" data-op="dilate" data-param="22">◊<sub>22</sub>T</button>
+          <button class="preset" type="button" data-label="C" data-op="displace" data-param="22">(C)<sub>22</sub></button>
+          <button class="preset" type="button" data-label="P" data-op="complement" data-param="0">¬P</button>
+        </div>
+
+        <div class="ie-stage">
+          <div class="ie-block">
+            <span class="ie-label">Input support</span>
+            <div class="ie-line" id="a1Before"></div>
+          </div>
+          <div class="ie-op">
+            <span id="a1Expr">EROSION(S, 60)</span>
+            <small id="a1Note">right endpoints move left; right endpoints become closed</small>
+          </div>
+          <div class="ie-block result">
+            <span class="ie-label">Result after normalization</span>
+            <div class="ie-line" id="a1After"></div>
+          </div>
+        </div>
+        <p class="ie-meta" id="a1Meta"></p>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap" id="algorithm-2" aria-labelledby="a2-title">
+    <div class="algo-head">
+      <div class="algo-number" aria-hidden="true">2</div>
+      <div>
+        <div class="kicker">Model check</div>
+        <h2 id="a2-title">Translate, substitute, eliminate, evaluate</h2>
+        <p>One record and one candidate, from formula to decision.</p>
+      </div>
+    </div>
+
+    <div class="algo-layout">
+      <article class="panel">
+        <span class="panel-label">Pseudocode</span>
+        <pre class="pseudo"><span class="kw">function</span> <span class="fn">MODELCHECK</span>(ε, φ, q)
+  Φ(y) ← <span class="fn">TRANSLATETODOAG</span>(ε, φ, y)
+  Φ_q  ← Φ(q)
+  Ψ    ← <span class="fn">QE_DOAG</span>(Φ_q)
+  <span class="kw">return</span> <span class="fn">EVALUATELINEARBOOLEANFORMULA</span>(Ψ)</pre>
+        <p class="pseudo-note">◊ and □ introduce existential and universal auxiliary variables over <code>[y, y+t)</code>; QE removes them.</p>
+      </article>
+
+      <article class="panel">
+        <span class="panel-label live">Model check</span>
+        <div class="demo-controls two">
+          <div class="field">
+            <label for="a2Candidate">Candidate assignment</label>
+            <select id="a2Candidate"></select>
+          </div>
+          <div class="field">
+            <label>Algorithm stage</label>
+            <div class="stage-rail" role="group" aria-label="Algorithm 2 stages">
+              <button class="stage-btn" type="button" data-stage="1" aria-pressed="true">1 · Translate</button>
+              <button class="stage-btn" type="button" data-stage="2" aria-pressed="false">2 · Substitute</button>
+              <button class="stage-btn" type="button" data-stage="3" aria-pressed="false">3 · QE</button>
+              <button class="stage-btn" type="button" data-stage="4" aria-pressed="false">4 · Evaluate</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="stage-note" id="a2StageNote"></p>
+
+        <div class="table-wrap">
+          <table class="alg2-table" id="a2Table">
+            <thead>
+              <tr>
+                <th>Conjunct</th>
+                <th id="a2StageHead">1 · Φ(y)</th>
+              </tr>
+            </thead>
+            <tbody id="a2Rows"></tbody>
+          </table>
+        </div>
+
+        <div class="decision" id="a2Decision" aria-live="polite"></div>
+        <p class="fine-print">QE is shown as a Boolean; the page evaluates it through the core support functions.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap" id="algorithm-3" aria-labelledby="a3-title">
+    <div class="algo-head">
+      <div class="algo-number" aria-hidden="true">3</div>
+      <div>
+        <div class="kicker">Finite evidence</div>
+        <h2 id="a3-title">Restrict finite evidence to observed points</h2>
+        <p>Only boundaries already present in the record become observation points.</p>
+      </div>
+    </div>
+
+    <div class="algo-layout">
+      <article class="panel">
+        <span class="panel-label">Pseudocode</span>
+        <pre class="pseudo"><span class="kw">function</span> <span class="fn">FINITEEVIDENCE</span>(ε, φ[x], q)
+  Φ(x) ← <span class="fn">TRANSLATETODOAG</span>(ε, φ[x], q)
+  Ψ(x) ← <span class="fn">QE_DOAG</span>(Φ(x))
+  H    ← all affine boundary hyperplanes
+         occurring <span class="kw">in</span> Ψ
+  cells ← finite sign-cell decomposition
+          of ℚⁿ induced by H
+  F    ← one rational point from each
+         nonempty sign cell
+  <span class="kw">return</span> F</pre>
+        <p class="pseudo-note">The four points are <code>x</code>, <code>x+a</code>, <code>x+a+b</code>, and <code>x+a+b+c</code>. The demo restricts each to an existing BEST boundary; no midpoints or ε-shifts.</p>
+      </article>
+
+      <article class="panel">
+        <span class="panel-label live">Finite scan</span>
+        <div class="scan-bar">
+          <button class="btn btn-primary btn-small" type="button" id="a3Run">Run finite scan</button>
+          <span class="scan-status" id="a3Status" aria-live="polite">Ready.</span>
+        </div>
+
+        <div class="scan-summary" aria-label="Scan summary">
+          <div class="scan-stat"><strong id="a3Points">—</strong><span>observed points</span></div>
+          <div class="scan-stat"><strong id="a3Candidates">—</strong><span>ordered quadruples</span></div>
+          <div class="scan-stat"><strong id="a3Matches">—</strong><span>matching quadruples</span></div>
+        </div>
+
+        <div class="boundary-line">
+          <span>Boundaries</span>
+          <div id="a3Boundaries" class="record-chips"></div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="scan-table">
+            <thead>
+              <tr>
+                <th>Observation points</th>
+                <th>a</th>
+                <th>b</th>
+                <th>c</th>
+                <th>Support at x</th>
+                <th>Decision</th>
+              </tr>
+            </thead>
+            <tbody id="a3Rows">
+              <tr><td colspan="6" class="scan-status">Run the scan to list representative checks.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>QEL / BEST</span>
+    <nav aria-label="Related pages">
+      <a href="qel-reproducibility.html">Reproducibility guide</a>
+      <a href="qel-playground.html">Playground</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="qel-query-core.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const core = window.QELCore;
+  if (!core) {
+    document.getElementById("main").innerHTML = "<div class='wrap'><p class='decision bad'>Core engine failed to load.</p></div>";
+    return;
+  }
+
+  const TOL = 1e-9;
+  const record = {
+    id: "P01",
+    supports: {
+      S: [{ a: 10, b: 70, lc: true, rc: true }],
+      T: [{ a: 10, b: 30, lc: true, rc: true }],
+      C: [{ a: 32, b: 68, lc: true, rc: true }],
+      P: [{ a: 70, b: 115, lc: true, rc: true }]
+    }
+  };
+
+  function fmtNum(v) {
+    if (v === -Infinity) return "−∞";
+    if (v === Infinity) return "+∞";
+    const rounded = Math.round(v * 1e6) / 1e6;
+    return String(rounded).replace("-", "−");
+  }
+
+  function fmtIE(IE) {
+    if (!IE || !IE.length) return "∅";
+    return IE.map(i => `${i.lc ? "[" : "("}${fmtNum(i.a)}, ${fmtNum(i.b)}${i.rc ? "]" : ")"}`).join(" ∪ ");
+  }
+
+  function chipsHTML(IE, label) {
+    if (!IE || !IE.length) return "<span class='ie-empty'>∅</span>";
+    return IE.map(i => `<span class="ie-chip label-${label.toLowerCase()}">${fmtIE([i])}</span>`).join("");
+  }
+
+  function intervalConstraint(IE, variable) {
+    if (!IE || !IE.length) return "false";
+    return IE.map(i => {
+      const parts = [];
+      if (i.a !== -Infinity) parts.push(`${fmtNum(i.a)} ${i.lc ? "≤" : "<"} ${variable}`);
+      if (i.b !== Infinity) parts.push(`${variable} ${i.rc ? "≤" : "<"} ${fmtNum(i.b)}`);
+      if (!parts.length) return "true";
+      return parts.length === 1 ? parts[0] : `${parts[0]} ∧ ${parts[1]}`;
+    }).join(" ∨ ");
+  }
+
+  function atomFormula(label, variable) {
+    const IE = record.supports[label];
+    if (IE.length === 1 && IE[0].a !== -Infinity && IE[0].b !== Infinity) {
+      const i = IE[0];
+      return `${fmtNum(i.a)} ${i.lc ? "≤" : "<"} ${variable} ${i.rc ? "≤" : "<"} ${fmtNum(i.b)}`;
+    }
+    return intervalConstraint(IE, variable);
+  }
+
+  const a1Label = document.getElementById("a1Label");
+  const a1Op = document.getElementById("a1Op");
+  const a1Param = document.getElementById("a1Param");
+  const a1ParamWrap = document.getElementById("a1ParamWrap");
+  const a1ParamName = document.getElementById("a1ParamName");
+  const a1Before = document.getElementById("a1Before");
+  const a1After = document.getElementById("a1After");
+  const a1Expr = document.getElementById("a1Expr");
+  const a1Note = document.getElementById("a1Note");
+  const a1Meta = document.getElementById("a1Meta");
+
+  const a1Defaults = { displace: 22, dilate: 22, erode: 60 };
+  const a1Notes = {
+    displace: "every finite boundary moves left by q; closure marks stay the same",
+    dilate: "left endpoints move left by r and become open",
+    erode: "right endpoints move left by r and become closed",
+    complement: "missing exterior intervals are added and every closure mark flips"
+  };
+
+  function a1Run() {
+    const label = a1Label.value;
+    const op = a1Op.value;
+    let value = Number(a1Param.value);
+    if (!Number.isFinite(value)) value = 0;
+    if (op === "dilate" || op === "erode") value = Math.max(0, value);
+    if (op !== "complement" && String(value) !== a1Param.value) a1Param.value = String(value);
+    const input = record.supports[label];
+    let result;
+
+    if (op === "displace") result = core.displace(input, value);
+    else if (op === "dilate") result = core.dilate(input, value);
+    else if (op === "erode") result = core.erode(input, value);
+    else result = core.complement(input);
+
+    const hasParam = op !== "complement";
+    a1ParamWrap.classList.toggle("disabled", !hasParam);
+    a1Param.disabled = !hasParam;
+    a1ParamName.textContent = op === "displace" ? "Shift q" : "Radius r";
+
+    const call = op.toUpperCase();
+    a1Before.innerHTML = chipsHTML(input, label);
+    a1After.innerHTML = chipsHTML(result, label);
+    a1Expr.textContent = hasParam ? `${call}(${label}, ${fmtNum(value)})` : `${call}(${label})`;
+    a1Note.textContent = a1Notes[op];
+    a1Meta.textContent = `${input.length} input interval${input.length === 1 ? "" : "s"} → ${result.length} normalized interval${result.length === 1 ? "" : "s"}.`;
+  }
+
+  a1Label.addEventListener("change", a1Run);
+  a1Op.addEventListener("change", () => {
+    if (a1Defaults[a1Op.value] != null) a1Param.value = String(a1Defaults[a1Op.value]);
+    a1Run();
+  });
+  a1Param.addEventListener("input", a1Run);
+  document.querySelectorAll(".preset").forEach(button => {
+    button.addEventListener("click", () => {
+      a1Label.value = button.dataset.label;
+      a1Op.value = button.dataset.op;
+      a1Param.value = button.dataset.param;
+      a1Run();
+    });
+  });
+
+  const a2Candidates = [
+    { id: "match", label: "Match · [10, 30, 70, 115] · a=20, b=40, c=45", x: 10, a: 20, b: 40, c: 45 },
+    { id: "no-match", label: "No match · [10, 30, 32, 68] · a=20, b=2, c=36", x: 10, a: 20, b: 2, c: 36 }
+  ];
+  const a2Candidate = document.getElementById("a2Candidate");
+  const a2Rows = document.getElementById("a2Rows");
+  const a2StageNote = document.getElementById("a2StageNote");
+  const a2Decision = document.getElementById("a2Decision");
+  const a2StageButtons = [...document.querySelectorAll(".stage-btn")];
+
+  const a2StageNotes = [
+    "<strong>1 · Translate.</strong> Atoms become interval-membership constraints. Each ◊ or □ introduces an auxiliary variable over the half-open future window <code>[y, y+t)</code>.",
+    "<strong>2 · Substitute.</strong> Fix the reference point <code>y = q = x</code>. The only remaining variables are the auxiliary variables introduced by modalities.",
+    "<strong>3 · Eliminate.</strong> <code>QE_DOAG</code> removes those auxiliary variables. Each row reduces to a Boolean outcome.",
+    "<strong>4 · Evaluate.</strong> The body is the conjunction of the four outcomes. The candidate is accepted only when every conjunct is true."
+  ];
+  const a2StageHeads = ["1 · Φ(y)", "2 · Φ(q)", "3 · After QE", "4 · Check"];
+  const a2StageHead = document.getElementById("a2StageHead");
+  let a2Stage = 1;
+
+  a2Candidates.forEach(candidate => {
+    const option = document.createElement("option");
+    option.value = candidate.id;
+    option.textContent = candidate.label;
+    a2Candidate.appendChild(option);
+  });
+
+  function a2RowsFor(candidate) {
+    const x = candidate.x;
+    const a = candidate.a;
+    const b = candidate.b;
+    const c = candidate.c;
+    const ab = a + b;
+    const xab = x + ab;
+    const xa = x + a;
+    const env = { x, a, b, c };
+
+    const specs = [
+      {
+        name: "□<sub>a+b</sub>S",
+        expr: core.box(core.add(core.V("a"), core.V("b")), core.A("S")),
+        kind: "box",
+        child: "S",
+        start: x,
+        end: xab,
+        trans: `∀u. y ≤ u < y+${ab} → ${atomFormula("S", "u")}`,
+        sub: `∀u. ${fmtNum(x)} ≤ u < ${fmtNum(xab)} → ${atomFormula("S", "u")}`
+      },
+      {
+        name: "◊<sub>a</sub>T",
+        expr: core.dia(core.V("a"), core.A("T")),
+        kind: "diamond",
+        child: "T",
+        start: x,
+        end: xa,
+        trans: `∃u. y ≤ u < y+${a} ∧ ${atomFormula("T", "u")}`,
+        sub: `∃u. ${fmtNum(x)} ≤ u < ${fmtNum(xa)} ∧ ${atomFormula("T", "u")}`
+      },
+      {
+        name: "(◊<sub>b</sub>C)<sub>a</sub>",
+        expr: core.shift(core.V("a"), core.dia(core.V("b"), core.A("C"))),
+        kind: "diamond",
+        child: "C",
+        start: xa,
+        end: xab,
+        trans: `∃u. y+${a} ≤ u < y+${ab} ∧ ${atomFormula("C", "u")}`,
+        sub: `∃u. ${fmtNum(xa)} ≤ u < ${fmtNum(xab)} ∧ ${atomFormula("C", "u")}`
+      },
+      {
+        name: "(□<sub>c</sub>P)<sub>a+b</sub>",
+        expr: core.shift(core.add(core.V("a"), core.V("b")), core.box(core.V("c"), core.A("P"))),
+        kind: "box",
+        child: "P",
+        start: xab,
+        end: xab + c,
+        trans: `∀u. y+${ab} ≤ u < y+${ab + c} → ${atomFormula("P", "u")}`,
+        sub: `∀u. ${fmtNum(xab)} ≤ u < ${fmtNum(xab + c)} → ${atomFormula("P", "u")}`
+      }
+    ];
+
+    return specs.map(spec => {
+      const support = core.support(spec.expr, env, record);
+      const value = core.intervalAt(support, x) != null;
+      const reason = value ? "" : (spec.kind === "box"
+        ? `[${fmtNum(spec.start)}, ${fmtNum(spec.end)}) is not contained in ${spec.child}`
+        : `[${fmtNum(spec.start)}, ${fmtNum(spec.end)}) does not meet ${spec.child}`);
+      return { ...spec, support, value, reason };
+    });
+  }
+
+  function a2Render() {
+    const candidate = a2Candidates.find(item => item.id === a2Candidate.value) || a2Candidates[0];
+    const rows = a2RowsFor(candidate);
+    const all = rows.every(row => row.value);
+
+    a2StageNote.innerHTML = a2StageNotes[a2Stage - 1];
+    a2StageButtons.forEach(button => {
+      button.setAttribute("aria-pressed", String(Number(button.dataset.stage) === a2Stage));
+    });
+    a2StageHead.textContent = a2StageHeads[a2Stage - 1];
+    a2Rows.innerHTML = rows.map(row => {
+      let content;
+      if (a2Stage === 1) {
+        content = `<code>${row.trans}</code>`;
+      } else if (a2Stage === 2) {
+        content = `<code>${row.sub}</code>`;
+      } else if (a2Stage === 3) {
+        content = `<span class="qe-value ${row.value ? "pass" : "fail"}">${row.value ? "true" : "false"}</span>${row.reason ? `<span class="qe-reason">${row.reason}</span>` : ""}`;
+      } else {
+        content = `<span class="${row.value ? "pass" : "fail"}">${row.value ? "pass" : "fail"}</span>${row.reason ? `<span class="qe-reason">${row.reason}</span>` : ""}`;
+      }
+      return `<tr><td><code>${row.name}</code></td><td class="formula-cell">${content}</td></tr>`;
+    }).join("");
+
+    const values = rows.map(row => row.value ? "true" : "false").join(" ∧ ");
+    const firstFailure = rows.find(row => !row.value);
+    a2Decision.className = `decision ${all ? "ok" : "bad"}`;
+    a2Decision.innerHTML = all
+      ? `<strong>QE_DOAG(Φ(q)) = true</strong><span>${values}. The candidate is accepted; every conjunct contains x.</span>`
+      : `<strong>QE_DOAG(Φ(q)) = false</strong><span>${values}. ${firstFailure.name.replace(/<[^>]+>/g, "")} fails, so the candidate is rejected.</span>`;
+  }
+
+  a2Candidate.addEventListener("change", a2Render);
+  a2StageButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      a2Stage = Number(button.dataset.stage);
+      a2Render();
+    });
+  });
+
+  const a3RunButton = document.getElementById("a3Run");
+  const a3Status = document.getElementById("a3Status");
+  const a3Points = document.getElementById("a3Points");
+  const a3Candidates = document.getElementById("a3Candidates");
+  const a3Matches = document.getElementById("a3Matches");
+  const a3Boundaries = document.getElementById("a3Boundaries");
+  const a3Rows = document.getElementById("a3Rows");
+
+  function a3BoundaryValues() {
+    const values = [];
+    Object.values(record.supports).flat().forEach(interval => values.push(interval.a, interval.b));
+    return [...new Set(values)].sort((p, q) => p - q);
+  }
+
+  function a3Scan() {
+    const points = a3BoundaryValues();
+    const all = [];
+    const truths = [];
+    const falses = [];
+
+    for (let i = 0; i < points.length - 3; i++) {
+      for (let j = i + 1; j < points.length - 2; j++) {
+        for (let k = j + 1; k < points.length - 1; k++) {
+          for (let l = k + 1; l < points.length; l++) {
+            const t = [points[i], points[j], points[k], points[l]];
+            const env = { x: t[0], a: t[1] - t[0], b: t[2] - t[1], c: t[3] - t[2] };
+            const support = core.support(core.PGES_BODY, env, record);
+            const row = {
+              ...env,
+              points: t,
+              support,
+              value: core.intervalAt(support, env.x) != null
+            };
+            all.push(row);
+            if (row.value) truths.push(row);
+            else falses.push(row);
+          }
+        }
+      }
+    }
+
+    return { points, all, truths, falses };
+  }
+
+  function a3HasPoints(row, expected) {
+    return row.points.every((value, index) => Math.abs(value - expected[index]) <= TOL);
+  }
+
+  function a3MatchRows(truths) {
+    const picked = [];
+    const preferred = truths.find(row => a3HasPoints(row, [10, 30, 70, 115]));
+    if (preferred) picked.push(preferred);
+    for (const row of truths) {
+      if (picked.length >= 2) break;
+      if (!picked.includes(row)) picked.push(row);
+    }
+    return picked;
+  }
+
+  function a3RejectRows(falses) {
+    const picked = [];
+    const sample = falses.find(row => a3HasPoints(row, [10, 30, 32, 68]));
+    if (sample) picked.push(sample);
+    for (const row of falses) {
+      if (picked.length >= 3) break;
+      if (!picked.includes(row)) picked.push(row);
+    }
+    return picked;
+  }
+
+  function a3RowHTML(row, note) {
+    return `
+      <tr class="${row.value ? "is-match" : ""}">
+        <td class="points-cell"><code>${row.points.map(fmtNum).join(" → ")}</code></td>
+        <td>${fmtNum(row.a)}</td>
+        <td>${fmtNum(row.b)}</td>
+        <td>${fmtNum(row.c)}</td>
+        <td class="support-cell">${fmtIE(row.support)}</td>
+        <td>
+          <span class="${row.value ? "pass" : "fail"}">${row.value ? "match" : "no match"}</span>
+          ${note ? `<span class="qe-reason">${note}</span>` : ""}
+        </td>
+      </tr>
+    `;
+  }
+
+  function a3Render() {
+    a3Status.textContent = "Scanning observed quadruples…";
+    const result = a3Scan();
+    const accepted = a3MatchRows(result.truths);
+    const rejected = a3RejectRows(result.falses);
+    const noMatchNote = "C window [30, 32) misses C; P window [32, 68) misses P";
+
+    a3Points.textContent = String(result.points.length);
+    a3Candidates.textContent = String(result.all.length);
+    a3Matches.textContent = String(result.truths.length);
+    a3Status.textContent = `Scan complete. ${result.truths.length} of ${result.all.length} observed quadruples match.`;
+
+    a3Boundaries.innerHTML = a3BoundaryValues()
+      .map(value => `<code>${fmtNum(value)}</code>`)
+      .join("");
+
+    let html = "";
+    if (accepted.length) {
+      html += "<tr class='scan-section'><td colspan='6'>Accepted · ordered boundary quadruples</td></tr>";
+      html += accepted.map(row => a3RowHTML(row)).join("");
+    }
+    if (rejected.length) {
+      html += "<tr class='scan-section'><td colspan='6'>Rejected · ordered boundary quadruples</td></tr>";
+      html += rejected.map(row => {
+        const note = a3HasPoints(row, [10, 30, 32, 68]) ? noMatchNote : "body support misses x";
+        return a3RowHTML(row, note);
+      }).join("");
+    }
+    a3Rows.innerHTML = html || "<tr><td colspan='6' class='scan-status'>No observed quadruples produced a decision.</td></tr>";
+  }
+
+  a3RunButton.addEventListener("click", a3Render);
+
+  a1Run();
+  a2Render();
+  a3Render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive 54-case BEST record cohort query playground for GTC and PGES phenotypes.">
+<title>QEL Cohort Playground — Synthetic BEST Records</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318212b'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='20' font-weight='700' fill='white' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --paper: #fffdf9;
+    --ink: #18212b;
+    --ink-soft: #3f4b57;
+    --muted: #6b7480;
+    --line: #ddd6cb;
+    --line-strong: #c9c0b2;
+    --accent: #0b6b63;
+    --accent-soft: #e3f2ef;
+    --amber: #a85d08;
+    --amber-soft: #fbefdd;
+    --blue: #2459a8;
+    --blue-soft: #e8eef9;
+    --red: #b13a31;
+    --red-soft: #fbe8e5;
+    --purple: #6941a5;
+    --purple-soft: #efe8f8;
+    --green: #1e7a4b;
+    --green-soft: #e5f3ea;
+    --shadow: 0 18px 50px rgba(24, 33, 43, .08);
+    --radius: 18px;
+    --max: 1360px;
+    --label-w: 38px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 4% -4%, rgba(11,107,99,.11), transparent 34rem),
+      radial-gradient(circle at 98% 8%, rgba(168,93,8,.08), transparent 28rem),
+      var(--bg);
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  code, pre, .mono { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; }
+  .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
+  .skip {
+    position: absolute; left: -999px; top: 8px; z-index: 100;
+    background: var(--ink); color: white; padding: 10px 14px; border-radius: 8px;
+  }
+  .skip:focus { left: 8px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(245,243,238,.88);
+    border-bottom: 1px solid rgba(201,192,178,.55);
+    backdrop-filter: blur(14px);
+  }
+  .topbar-inner { display: flex; align-items: center; gap: 18px; min-height: 66px; }
+  .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--ink); margin-right: auto; }
+  .brand-mark {
+    display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px;
+    background: var(--ink); color: #fff; font: 700 18px/1 ui-serif, Georgia, serif;
+    box-shadow: 0 6px 16px rgba(24,33,43,.18);
+  }
+  .brand b { display: block; font-size: 14px; letter-spacing: .03em; }
+  .brand small { display: block; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .back-link { color: var(--ink-soft); text-decoration: none; font-size: 13px; font-weight: 650; }
+  .back-link:hover { color: var(--accent); }
+  .hero { padding: 48px 0 26px; display: flex; align-items: end; justify-content: space-between; gap: 32px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    color: var(--accent); font-size: 12px; font-weight: 750;
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  .eyebrow::before { content: ""; width: 26px; height: 2px; background: currentColor; border-radius: 2px; }
+  h1, h2, h3 {
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    letter-spacing: -.025em;
+  }
+  h1 { max-width: 840px; margin: 14px 0 12px; font-size: clamp(38px, 5vw, 64px); line-height: 1.02; font-weight: 650; }
+  .lede { max-width: 800px; margin: 0; color: var(--ink-soft); font-size: 17px; line-height: 1.55; }
+  .hero-badge {
+    flex: 0 0 auto; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--paper); box-shadow: var(--shadow); color: var(--ink-soft); font-size: 12px;
+  }
+  .hero-badge strong { display: block; color: var(--accent); font-size: 13px; }
+  .panel {
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .query-panel { padding: 20px; margin-bottom: 18px; }
+  .query-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+  .panel-label { color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+  .segmented {
+    display: inline-flex; padding: 4px; margin-top: 8px; gap: 3px;
+    border: 1px solid var(--line); border-radius: 999px; background: #f2eee7;
+  }
+  .segmented button {
+    appearance: none; border: 0; background: transparent; color: var(--ink-soft);
+    border-radius: 999px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .segmented button[aria-pressed="true"] { background: var(--ink); color: #fff; box-shadow: 0 4px 12px rgba(24,33,43,.16); }
+  .query-actions { display: flex; gap: 9px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid transparent; border-radius: 999px; padding: 11px 17px;
+    font-size: 13px; font-weight: 700; line-height: 1.2; cursor: pointer; text-decoration: none;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 9px 22px rgba(11,107,99,.22); }
+  .btn-primary:hover { background: #085b54; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn-ghost:hover { background: #f7f3ec; }
+  .btn-small { padding: 8px 12px; font-size: 12px; }
+  .formula-bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-top: 16px; padding: 16px 18px; border-radius: 14px;
+    background: #1c252e; color: #f4f1ea; border: 1px solid #111820;
+    overflow-x: auto;
+  }
+  .formula {
+    font-family: "STIX Two Math", "Cambria Math", "Times New Roman", ui-serif, Georgia, serif;
+    font-size: clamp(18px, 2.2vw, 26px); line-height: 1.7; white-space: nowrap; flex: 1 1 auto;
+  }
+  .formula sub { font-size: .58em; }
+  .formula .op { color: #8bd4c8; padding: 0 .12em; }
+  .formula .q { color: #f0c26a; }
+  .formula sub.q { color: #f0c26a; }
+  .formula .br { color: #8f9aa6; padding: 0 .12em; }
+  .formula .ev { font-weight: 700; padding: 0 .05em; }
+  .formula .ev.s { color: #8ab8ff; }
+  .formula .ev.t { color: #ff9f98; }
+  .formula .ev.c { color: #c9a6ff; }
+  .formula .ev.p { color: #7ee0a9; }
+  .formula .ev.empty { color: #f0c26a; }
+  .formula .paren { color: #b6c0ca; }
+  .formula-bar.strict-formula .formula { font-size: clamp(12px, 1.45vw, 18px); line-height: 1.9; }
+  @media (max-width: 760px) {
+    .formula-bar.strict-formula .formula { white-space: normal; }
+  }
+  .formula-chip {
+    flex: 0 0 auto; border: 1px solid rgba(240,194,106,.42); color: #f0c26a;
+    background: rgba(240,194,106,.08); border-radius: 999px; padding: 5px 10px;
+    font: 650 11.5px/1.2 "SFMono-Regular", ui-monospace, Menlo, monospace; white-space: nowrap;
+  }
+  .controls { display: grid; grid-template-columns: minmax(260px, 440px) 1fr; gap: 18px; align-items: end; margin-top: 15px; }
+  .slider-label { display: flex; justify-content: space-between; gap: 12px; color: var(--ink-soft); font-size: 12.5px; font-weight: 650; }
+  .slider-label b { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .solver-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .solver-select {
+    appearance: none; border: 1px solid var(--line-strong); border-radius: 999px;
+    background: var(--paper); color: var(--ink); padding: 7px 30px 7px 12px;
+    font: 700 12px/1.2 ui-sans-serif, system-ui, sans-serif; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+    background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+  }
+  .solver-hint { color: var(--muted); font-size: 11.5px; }
+  input[type="range"] {
+    width: 100%; margin: 10px 0 0; accent-color: var(--accent); cursor: pointer;
+  }
+  input[type="range"]:disabled { opacity: .35; cursor: not-allowed; }
+  .hint { color: var(--muted); font-size: 12.5px; line-height: 1.5; margin: 0; }
+  .hint strong { color: var(--ink-soft); }
+  .summary {
+    display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 18px;
+  }
+  .summary-card { padding: 17px 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+  .summary-card strong { display: block; font: 650 clamp(26px, 3vw, 38px)/1 ui-serif, Georgia, serif; letter-spacing: -.03em; }
+  .summary-card span { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+  .summary-card.accent { background: var(--accent-soft); border-color: rgba(11,107,99,.18); }
+  .summary-card.accent strong { color: var(--accent); }
+  .summary-card.runtime strong { font-size: clamp(22px, 2.5vw, 30px); padding-top: 5px; }
+  #evalMeta { display: block; text-transform: none; letter-spacing: normal; font-weight: 400; line-height: 1.55; margin-top: 0; }
+  #evalMeta strong { display: inline; font: inherit; font-weight: 700; letter-spacing: normal; color: inherit; }
+  #evalMeta strong.pass { color: var(--green); }
+  #evalMeta strong.fail { color: var(--red); }
+  .compare-panel {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 18px; align-items: center; padding: 18px 20px; margin-bottom: 18px;
+  }
+  .compare-copy p { margin: 6px 0 0; max-width: 620px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .compare-cards { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .compare-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #faf7f1; }
+  .compare-card span { display: block; color: var(--muted); font-size: 9.5px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+  .compare-card strong { display: block; margin-top: 4px; font: 650 24px/1 ui-serif, Georgia, serif; letter-spacing: -.02em; }
+  .compare-card small { display: block; margin-top: 4px; color: var(--muted); font-size: 10.5px; }
+  .compare-card small span { display: inline; font: inherit; letter-spacing: inherit; text-transform: none; color: inherit; }
+  .compare-card.strict { background: var(--accent-soft); border-color: rgba(11,107,99,.18); }
+  .compare-card.strict strong { color: var(--accent); }
+  .compare-card.diff strong { color: var(--amber); }
+  .formula-guards {
+    flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12);
+  }
+  .formula-guards[hidden] { display: none; }
+  .guard-chip {
+    border: 1px solid rgba(139,212,200,.35); color: #b8e6df; background: rgba(139,212,200,.08);
+    border-radius: 999px; padding: 4px 8px; font: 650 10.5px/1.2 "SFMono-Regular", ui-monospace, Menlo, monospace;
+    white-space: nowrap;
+  }
+  .guard-chip.strict { border-color: rgba(240,194,106,.4); color: #f0c26a; background: rgba(240,194,106,.08); }
+  .workspace { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(400px, .8fr); gap: 18px; align-items: start; }
+  .records-panel { min-width: 0; }
+  .section-head { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 13px; }
+  .section-head h2 { margin: 0; font-size: 29px; line-height: 1.1; font-weight: 650; }
+  .section-head p { margin: 0; color: var(--muted); font-size: 12.5px; }
+  .record-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .record-card {
+    appearance: none; text-align: left; color: inherit; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 15px; background: var(--paper);
+    padding: 14px 15px 12px; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    min-width: 0;
+  }
+  .record-card:hover { transform: translateY(-1px); border-color: var(--line-strong); box-shadow: 0 10px 26px rgba(24,33,43,.06); }
+  .record-card.is-selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(11,107,99,.13); }
+  .record-card.is-match { background: linear-gradient(180deg, #fffdf9, #f0f8f4); }
+  .record-card.is-miss { opacity: .78; }
+  .record-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; margin-bottom: 9px; }
+  .record-id { display: block; color: var(--muted); font: 700 11px/1.2 "SFMono-Regular", ui-monospace, Menlo, monospace; letter-spacing: .08em; }
+  .record-head h3 { margin: 3px 0 0; font-size: 16.5px; line-height: 1.15; }
+  .badge {
+    flex: 0 0 auto; display: inline-flex; align-items: center; border-radius: 999px;
+    padding: 4px 8px; font-size: 10.5px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .badge.pending { color: var(--muted); background: #f2eee7; border-color: var(--line); }
+  .badge.pass { color: var(--green); background: var(--green-soft); border-color: rgba(30,122,75,.16); }
+  .badge.fail { color: var(--red); background: var(--red-soft); border-color: rgba(177,58,49,.14); }
+  .record-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 9px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+  .record-foot span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .record-count { flex: 0 0 auto; font-family: "SFMono-Regular", ui-monospace, Menlo, monospace; }
+  .audit-panel { position: sticky; top: 84px; padding: 20px; max-height: calc(100vh - 104px); overflow: auto; }
+  .audit-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 13px; }
+  .audit-head h2 { margin: 2px 0 0; font-size: 25px; line-height: 1.1; }
+  .audit-head .record-id { margin-bottom: 2px; }
+  .witness-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 7px; margin: 14px 0; }
+  .witness {
+    padding: 9px 8px; border: 1px solid var(--line); border-radius: 10px; background: #faf7f1; text-align: center;
+  }
+  .witness span { display: block; color: var(--muted); font-size: 9.5px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+  .witness strong { display: block; margin-top: 3px; font: 650 18px/1 "SFMono-Regular", ui-monospace, Menlo, monospace; }
+  .witness.s strong { color: var(--blue); }
+  .witness.t strong { color: var(--red); }
+  .witness.p strong { color: var(--green); }
+  .witness.c strong { color: var(--purple); }
+  .match-picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 13px; }
+  .match-picker button {
+    appearance: none; border: 1px solid var(--line); background: #faf7f1; color: var(--ink-soft);
+    border-radius: 999px; padding: 5px 9px; font-size: 10.5px; font-weight: 700; cursor: pointer;
+  }
+  .match-picker button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .timeline {
+    border: 1px solid var(--line); border-radius: 14px; background: #fffdf9; padding: 13px 13px 10px;
+  }
+  .timeline.mini { border: 0; background: transparent; padding: 0; }
+  .timeline.mini .tl-labels { grid-template-rows: repeat(4, 11px); gap: 3px; }
+  .timeline.mini .tl-chart { grid-template-rows: repeat(4, 11px); gap: 3px; }
+  .timeline.mini .tl-track { border-radius: 3px; }
+  .timeline.mini .tl-bar { border-radius: 3px; }
+  .timeline.mini .tl-bar span { display: none; }
+  .tl-axis-row { display: grid; grid-template-columns: var(--label-w) 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .tl-axis { position: relative; height: 17px; color: var(--muted); font-size: 10px; }
+  .tl-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .tl-axis span:first-child { transform: none; }
+  .tl-axis span:last-child { transform: translateX(-100%); }
+  .tl-content { display: grid; grid-template-columns: var(--label-w) 1fr; gap: 8px; }
+  .tl-labels { display: grid; grid-template-rows: repeat(4, 17px); gap: 5px; align-items: center; }
+  .tl-labels span { font: 700 10.5px/1 "SFMono-Regular", ui-monospace, Menlo, monospace; color: var(--ink-soft); }
+  .tl-chart { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(4, 17px); gap: 5px; width: 100%; min-width: 0; }
+  .tl-row { min-width: 0; height: 100%; }
+  .tl-track { position: relative; width: 100%; height: 100%; min-width: 0; border-radius: 4px; background: #f2eee7; overflow: hidden; }
+  .tl-bar { position: absolute; top: 0; bottom: 0; border-radius: 4px; min-width: 3px; display: flex; align-items: center; overflow: hidden; }
+  .tl-bar span { color: rgba(255,255,255,.94); font: 650 9px/1 "SFMono-Regular", ui-monospace, Menlo, monospace; padding: 0 4px; white-space: nowrap; }
+  .tl-bar.s { background: var(--blue); }
+  .tl-bar.t { background: var(--red); }
+  .tl-bar.c { background: var(--purple); }
+  .tl-bar.p { background: var(--green); }
+  .tl-bar.used { outline: 2px solid #f0c26a; outline-offset: -2px; }
+  .tl-none { position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed #d7d0c5; }
+  .tl-markers { position: absolute; inset: 0; pointer-events: none; }
+  .tl-marker { position: absolute; top: -18px; bottom: 0; border-left: 1px dashed rgba(24,33,43,.38); }
+  .tl-marker span {
+    position: absolute; top: 0; left: 4px; transform: translateY(-100%);
+    background: #fffdf9; border: 1px solid var(--line); border-radius: 5px;
+    color: var(--ink-soft); font: 650 9px/1 "SFMono-Regular", ui-monospace, Menlo, monospace;
+    padding: 3px 4px; white-space: nowrap;
+  }
+  .timeline-caption { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--muted); font-size: 10.5px; }
+  .trace { margin-top: 14px; }
+  .trace h3, .audit-section h3 { margin: 0 0 8px; font-size: 15px; line-height: 1.2; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #fffdf9; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase; background: #faf7f1; font-weight: 750; }
+  tr:last-child td { border-bottom: 0; }
+  td code { font-size: 11.5px; }
+  .pass { color: var(--green); font-weight: 750; }
+  .fail { color: var(--red); font-weight: 750; }
+  .audit-section { margin-top: 16px; }
+  .diagnosis {
+    padding: 14px 15px; border-radius: 12px; border: 1px solid rgba(177,58,49,.16);
+    background: var(--red-soft); color: #76251f; font-size: 13px; line-height: 1.5;
+  }
+  .diagnosis strong { display: block; margin-bottom: 3px; color: #5f1c17; }
+  .note-box {
+    padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: #faf7f1; color: var(--ink-soft); font-size: 12px; line-height: 1.5;
+  }
+  .note-box strong { color: var(--ink); }
+  .explainer { margin: 64px 0 20px; }
+  .explainer-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+  .explain-card { padding: 19px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+  .explain-card h3 { margin: 0 0 7px; font-size: 17px; }
+  .explain-card p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .footer { border-top: 1px solid var(--line); padding: 28px 0 42px; color: var(--muted); font-size: 12px; }
+  .footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+  .footer a { color: var(--ink-soft); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* ---------- Nordic design system ---------- */
+  :root {
+    --bg: #f2f4f5;
+    --paper: #fbfcfc;
+    --paper-2: #edf1f2;
+    --ink: #172126;
+    --ink-soft: #3e4b52;
+    --muted: #718089;
+    --line: #dce3e5;
+    --line-strong: #c6d0d4;
+    --accent: #3f6575;
+    --accent-dark: #2f4f5c;
+    --accent-soft: #e7eef1;
+    --amber: #3f6575;
+    --amber-soft: #eef2f3;
+    --blue: #45647b;
+    --blue-soft: #e7eef1;
+    --red: #7c5b57;
+    --red-soft: #f4eeed;
+    --purple: #65617c;
+    --purple-soft: #efedf2;
+    --green: #4a6d5e;
+    --green-soft: #edf3ef;
+    --shadow: none;
+    --radius: 3px;
+    --sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  }
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  a:hover { color: var(--accent-dark); }
+  .skip { border-radius: 2px; }
+  .topbar { background: rgba(242,244,245,.94); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px); }
+  .topbar-inner { min-height: 60px; gap: 22px; }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 2px; box-shadow: none;
+    background: var(--ink); color: var(--paper); font: 500 14px/1 var(--mono);
+  }
+  .brand b { font-size: 13px; font-weight: 600; letter-spacing: .01em; }
+  .brand small { font: 500 9.5px/1.5 var(--mono); letter-spacing: .1em; }
+  .back-link { color: var(--muted); font: 500 12px/1.2 var(--sans); }
+  .hero { padding: 78px 0 30px; }
+  .eyebrow { font: 500 10px/1.4 var(--mono); letter-spacing: .14em; color: var(--muted); }
+  .eyebrow::before { display: none; }
+  h1, h2, h3 { font-family: var(--sans); font-weight: 500; }
+  h1 { max-width: 900px; margin: 18px 0 20px; font-size: clamp(44px, 6.4vw, 68px); line-height: 1; letter-spacing: -.045em; }
+  .lede { max-width: 680px; color: var(--ink-soft); font-size: clamp(16px, 1.8vw, 18px); line-height: 1.6; }
+  .hero-badge {
+    padding: 2px 0 2px 16px; border: 0; border-left: 1px solid var(--line-strong);
+    border-radius: 0; background: transparent; box-shadow: none;
+    color: var(--muted); font: 500 10.5px/1.6 var(--mono);
+  }
+  .hero-badge strong { color: var(--ink); font-size: 11px; font-weight: 600; }
+  .panel {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 3px; box-shadow: none;
+  }
+  .query-panel { padding: 22px; margin-bottom: 24px; }
+  .eval-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .eval-row .panel-label { margin: 0; }
+  .eval-file-label { cursor: pointer; }
+  .eval-file-label:focus-within { outline: 1px solid var(--accent); outline-offset: 2px; }
+  .eval-file-name { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font: 500 10px/1.5 var(--mono); }
+  .eval-status { color: var(--muted); font: 500 10px/1.5 var(--mono); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn:disabled:hover { background: transparent; border-color: var(--line-strong); }
+  .panel-label { color: var(--muted); font: 500 9.5px/1.4 var(--mono); letter-spacing: .12em; }
+  .segmented {
+    padding: 3px; gap: 3px; border-radius: 2px; background: var(--paper-2); border-color: var(--line);
+  }
+  .segmented button { border-radius: 1px; padding: 7px 12px; font: 500 12px/1.2 var(--sans); }
+  .segmented button[aria-pressed="true"] { background: var(--ink); box-shadow: none; }
+  .btn {
+    border-radius: 2px; padding: 9px 14px; font: 600 12px/1.2 var(--sans);
+    box-shadow: none; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn:hover { transform: none; }
+  .btn-primary { background: var(--accent); box-shadow: none; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-ghost { border-color: var(--line-strong); }
+  .btn-ghost:hover { background: var(--paper); }
+  .btn-small { padding: 7px 11px; font-size: 11.5px; }
+  .formula-bar {
+    border-radius: 2px; background: #202a2f; border-color: #202a2f; color: #d5e0e4;
+  }
+  .formula .op { color: #9fc2cf; }
+  .formula .q, .formula sub.q, .formula .ev.empty { color: #b9c7cc; }
+  .formula .br, .formula .paren { color: #7e8f97; }
+  .formula .ev.s { color: #8fb3c0; }
+  .formula .ev.t { color: #c39a95; }
+  .formula .ev.c { color: #a8a0c0; }
+  .formula .ev.p { color: #93b7a7; }
+  .formula-chip {
+    border-radius: 2px; border-color: rgba(199,216,222,.35); color: #c7d8de;
+    background: rgba(199,216,222,.07); font: 500 10.5px/1.2 var(--mono);
+  }
+  .slider-label { color: var(--ink-soft); font: 500 11.5px/1.4 var(--sans); }
+  .slider-label b { color: var(--accent); }
+  .solver-select {
+    appearance: auto; -webkit-appearance: auto; border-radius: 2px; padding: 7px 10px;
+    background: var(--paper); background-image: none; font: 500 11.5px/1.2 var(--sans);
+  }
+  .solver-hint, .hint { font-size: 11.5px; color: var(--muted); }
+  .summary {
+    gap: 0; margin: 24px 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line);
+  }
+  .summary-card {
+    padding: 16px 18px; border: 0; border-right: 1px solid var(--line);
+    border-radius: 0; background: transparent;
+  }
+  .summary-card:nth-child(4) { border-right: 0; }
+  .summary-card:last-child { border-top: 1px solid var(--line); border-right: 0; }
+  .summary-card strong { font: 500 clamp(28px, 3vw, 36px)/1.05 var(--sans); letter-spacing: -.04em; }
+  .summary-card span { font: 500 9px/1.4 var(--mono); letter-spacing: .09em; }
+  .summary-card.accent { background: transparent; border-color: var(--line); }
+  .summary-card.accent strong { color: var(--accent); }
+  .summary-card.runtime strong { font-size: clamp(22px, 2.5vw, 28px); }
+  #evalMeta { font: 500 10.5px/1.6 var(--mono); }
+  .compare-panel { padding: 22px; margin-bottom: 24px; align-items: start; }
+  .compare-copy p { font-size: 12px; }
+  .compare-table-wrap { min-width: 0; }
+  .compare-table-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+  .compare-total { color: var(--muted); font: 500 9.5px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .compare-table th, .compare-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
+  .compare-table thead th { background: transparent; border-bottom: 1px solid var(--line-strong); font: 500 9px/1.4 var(--mono); letter-spacing: .08em; }
+  .compare-table thead th:not(:first-child), .compare-table td { text-align: right; }
+  .compare-table tbody th { color: var(--ink-soft); font: 600 12px/1.3 var(--sans); letter-spacing: normal; text-transform: none; white-space: nowrap; }
+  .compare-table td { color: var(--ink); font: 500 18px/1 var(--sans); letter-spacing: -.03em; }
+  .compare-table tr.strict td { color: var(--accent); }
+  .compare-table tr.diff th, .compare-table tr.diff td { border-top: 1px solid var(--line-strong); border-bottom: 0; color: var(--accent); }
+  .compare-legend { margin: 9px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+  .compare-legend strong { color: var(--ink-soft); font-weight: 600; }
+  .compare-card { border-radius: 2px; background: var(--paper-2); padding: 12px; }
+  .compare-card span { font: 500 8.5px/1.4 var(--mono); letter-spacing: .08em; }
+  .compare-card strong { font: 500 24px/1 var(--sans); letter-spacing: -.04em; }
+  .compare-card small { font: 500 9.5px/1.5 var(--mono); }
+  .compare-card.strict { background: var(--accent-soft); border-color: var(--line-strong); }
+  .compare-card.strict strong { color: var(--accent); }
+  .compare-card.diff strong { color: var(--accent); }
+  .guard-chip { border-radius: 2px; font: 500 9.5px/1.2 var(--mono); }
+  .guard-chip.strict { border-color: rgba(199,216,222,.35); color: #c7d8de; background: rgba(199,216,222,.07); }
+  .workspace { gap: 24px; }
+  .section-head h2 { font-size: clamp(26px, 3vw, 32px); font-weight: 500; letter-spacing: -.035em; }
+  .section-head p { font-size: 11.5px; }
+  .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .section-actions .btn { white-space: nowrap; }
+  .record-grid { gap: 10px; }
+  .record-card {
+    border-radius: 2px; padding: 13px 14px 11px; box-shadow: none;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .record-card:hover { transform: none; border-color: var(--accent); box-shadow: none; }
+  .record-card.is-selected { border-color: var(--accent); outline: 1px solid var(--accent); outline-offset: -1px; box-shadow: none; }
+  .record-card.is-match { background: #f3f7f6; }
+  .record-card.is-miss { opacity: .62; }
+  .record-id { font: 500 10px/1.2 var(--mono); letter-spacing: .1em; }
+  .record-head h3 { font-size: 15.5px; font-weight: 500; letter-spacing: -.02em; }
+  .badge { border-radius: 2px; padding: 3px 6px; font: 500 9px/1.2 var(--mono); letter-spacing: .06em; }
+  .badge.pending { background: var(--paper-2); }
+  .badge.pass { background: var(--green-soft); border-color: var(--line); }
+  .badge.fail { background: var(--red-soft); border-color: var(--line); }
+  .record-foot { align-items: flex-start; font: 500 10px/1.5 var(--mono); }
+  .record-foot span:first-child { overflow: visible; text-overflow: clip; white-space: normal; }
+  .audit-panel { top: 76px; padding: 22px; max-height: calc(100vh - 96px); }
+  .audit-head h2 { font-size: 25px; font-weight: 500; letter-spacing: -.03em; }
+  .witness-grid { gap: 6px; margin: 12px 0; }
+  .witness { border-radius: 2px; background: var(--paper-2); padding: 8px 6px; }
+  .witness span { font: 500 8.5px/1.4 var(--mono); letter-spacing: .08em; }
+  .witness strong { font: 500 17px/1 var(--mono); }
+  .match-picker button { border-radius: 2px; background: var(--paper-2); font: 500 10px/1.2 var(--mono); padding: 5px 7px; }
+  .timeline { border-radius: 2px; background: var(--paper); padding: 12px; }
+  .timeline.mini { border: 0; background: transparent; padding: 0; }
+  .tl-track { border-radius: 2px; background: var(--paper-2); }
+  .tl-bar { border-radius: 2px; }
+  .tl-bar.used { outline: 1px solid var(--accent); outline-offset: -1px; }
+  .tl-none { border-top-color: var(--line-strong); }
+  .tl-marker { border-left-color: rgba(62,75,82,.32); }
+  .tl-marker span { background: var(--paper); border-radius: 2px; font: 500 9px/1.2 var(--mono); }
+  .tl-marker:last-child span { left: auto; right: 4px; }
+  .timeline-caption { font: 500 9.5px/1.5 var(--mono); }
+  .trace h3, .audit-section h3 { font-size: 14.5px; font-weight: 500; letter-spacing: -.01em; }
+  .table-wrap { border-radius: 2px; background: var(--paper); }
+  table { font-size: 11.5px; }
+  th, td { padding: 8px 9px; }
+  th { background: var(--bg); font: 500 9px/1.4 var(--mono); letter-spacing: .08em; }
+  td code { font-size: 10.5px; }
+  .diagnosis { border-radius: 2px; border-color: var(--line); background: var(--red-soft); color: #6f3d37; font-size: 12px; }
+  .diagnosis strong { color: #5e322d; font-weight: 600; }
+  .note-box { border-radius: 2px; background: var(--paper-2); font-size: 11.5px; }
+  .explainer { margin: 84px 0 24px; }
+  .explainer-grid { gap: 12px; align-items: start; }
+  .explain-card { border-radius: 2px; padding: 18px; }
+  .explain-card h3 { font-size: 16px; font-weight: 500; }
+  .explain-card p { font-size: 12px; }
+  .footer { padding: 24px 0 40px; font-size: 11px; }
+  .footer a { text-decoration: none; }
+
+  @media (max-width: 1120px) {
+    .workspace { grid-template-columns: 1fr; }
+    .audit-panel { position: static; max-height: none; }
+  }
+  @media (max-width: 840px) {
+    .hero { display: block; }
+    .hero-badge { display: inline-block; margin-top: 18px; }
+    .controls { grid-template-columns: 1fr; }
+    .summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .compare-panel { grid-template-columns: 1fr; }
+    .record-grid { grid-template-columns: 1fr; }
+    .explainer-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .wrap { width: min(var(--max), calc(100% - 24px)); }
+    .topbar .back-link { display: none; }
+    .query-actions { width: 100%; }
+    .query-actions .btn { flex: 1; }
+    .segmented { flex-wrap: wrap; }
+    .summary { grid-template-columns: 1fr 1fr; }
+    .compare-cards { grid-template-columns: 1fr; }
+    .witness-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .formula-bar { align-items: flex-start; }
+  }
+
+  @media (max-width: 840px) {
+    .summary-card:nth-child(2n) { border-right: 0; }
+    .summary-card:nth-child(3), .summary-card:nth-child(4) { border-top: 1px solid var(--line); }
+    .hero-badge { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; }
+  }
+
+  @media (max-width: 760px) {
+    .formula-bar .formula { white-space: normal; }
+  }
+  @media (max-width: 620px) {
+    .eval-row { display: grid; grid-template-columns: auto 1fr; }
+    .eval-row .panel-label { grid-column: 1; }
+    .eval-status { grid-column: 2; justify-self: end; text-align: right; }
+    .eval-file-label { grid-column: 1; grid-row: 2; justify-self: start; }
+    .eval-file-name { grid-column: 2; grid-row: 2; max-width: none; }
+    #loadEvalBtn { grid-column: 1; grid-row: 3; justify-self: start; }
+    #restoreDefaultBtn { grid-column: 2; grid-row: 3; justify-self: end; }
+    .records-panel .section-head { display: grid; grid-template-columns: 1fr; align-items: start; }
+    .section-actions { justify-content: flex-start; }
+    .tl-marker span { display: none; }
+  }
+  @media print {
+    .topbar, .query-actions, .back-link, .footer { display: none; }
+    body { background: white; }
+    .panel, .record-card, .audit-panel { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="qel-playground.html" aria-label="QEL cohort playground">
+      <span class="brand-mark">Q</span>
+      <span><b>QEL Cohort Playground</b><small>Synthetic BEST records</small></span>
+    </a>
+    <a class="back-link" href="qel-algorithm.html">Core algorithm</a>
+    <a class="back-link" href="qel-reproducibility.html">← Reproducibility guide</a>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">Interactive demo · QEL / BEST · Manual Evaluation</div>
+      <h1>Build a cohort from annotated timelines</h1>
+      <p class="lede">
+        Each card is one evaluation case from the loaded set. Choose GTC or PGES, adjust the suppression filter,
+        run the query, and inspect the witness that makes a case satisfy the temporal formula.
+        The set loads from <code>pges-manual-eval.json</code>; you can replace it with another JSON file.
+      </p>
+    </div>
+    <div class="hero-badge">
+      <strong>Synthetic data</strong>
+      <span id="datasetInfo">Loading 54-case evaluation set…</span><br>
+      Not the paper's clinical cohort
+    </div>
+  </section>
+
+  <section class="panel query-panel" aria-labelledby="query-title">
+    <div class="query-top">
+      <div>
+        <div class="panel-label" id="query-title">Query builder</div>
+        <div class="segmented" role="group" aria-label="Choose a phenotype preset">
+          <button type="button" data-preset="pges" aria-pressed="true">PGES base</button>
+          <button type="button" data-preset="strict" aria-pressed="false">PGES strict</button>
+          <button type="button" data-preset="gtc" aria-pressed="false">GTC</button>
+        </div>
+        <div class="solver-row">
+          <label class="panel-label" for="solverMode">Solver</label>
+          <select id="solverMode" class="solver-select">
+            <option value="optimized" selected>Optimized witness search</option>
+            <option value="paper">Paper finite-cell (Algorithm 3)</option>
+          </select>
+          <span class="solver-hint" id="solverHint">Fast endpoint candidates.</span>
+        </div>
+        <div class="eval-row">
+          <span class="panel-label">Evaluation set</span>
+          <span id="evalStatus" class="eval-status" aria-live="polite">Loading 54-case set…</span>
+          <label class="btn btn-ghost btn-small eval-file-label" for="evalFile">
+            Choose JSON
+            <input class="sr-only" type="file" id="evalFile" accept="application/json">
+          </label>
+          <span class="eval-file-name" id="evalFileName">No file selected</span>
+          <button type="button" class="btn btn-ghost btn-small" id="loadEvalBtn" disabled>Load selected</button>
+          <button type="button" class="btn btn-ghost btn-small" id="restoreDefaultBtn">Reload 54 cases</button>
+        </div>
+      </div>
+      <div class="query-actions">
+        <button type="button" class="btn btn-primary" id="runBtn">Run cohort query</button>
+        <button type="button" class="btn btn-ghost" id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="formula-bar">
+      <div class="formula" id="formulaBar" aria-live="polite"></div>
+      <span class="formula-chip" id="formulaChip" hidden></span>
+      <div class="formula-guards" id="formulaGuards" hidden></div>
+    </div>
+
+    <div class="controls">
+      <div>
+        <label class="slider-label" for="cMin">
+          <span id="cMinLabel">Suppression witness filter</span>
+          <span>c ≥ <b id="cMinVal">0</b> s</span>
+        </label>
+        <input id="cMin" type="range" min="0" max="20" step="1" value="0">
+      </div>
+      <p class="hint" id="queryHint"></p>
+    </div>
+  </section>
+
+  <section class="summary" aria-label="Query result summary" aria-live="polite">
+    <div class="summary-card accent"><strong id="sumPatients">—</strong><span>patients with ≥1 match</span></div>
+    <div class="summary-card"><strong id="sumPatterns">—</strong><span>matching patterns</span></div>
+    <div class="summary-card"><strong id="sumRecords">—</strong><span>cases evaluated</span></div>
+    <div class="summary-card runtime"><strong id="sumRuntime">—</strong><span>browser runtime</span></div>
+    <div class="summary-card" style="grid-column: 1 / -1">
+      <span id="evalMeta" style="font-size:12px; color:var(--muted); line-height:1.5;"></span>
+    </div>
+  </section>
+
+  <section class="panel compare-panel" aria-labelledby="compare-title">
+    <div class="compare-copy">
+      <div class="panel-label" id="compare-title">One evaluation set, two query formulas</div>
+      <p><strong>PGES base</strong> is the permissive reference query: it asks for a T and a C occurrence in their windows, so intervals may overlap or extend outside S, and P may begin before the offset. <strong>PGES strict</strong> is one exact formula with a 10 s no-event prefix, <code>S∧¬P</code>, <code>T∧¬C</code>, <code>C∧¬T</code>, and <code>P∧¬S</code>. The exclusions sit inside the formula, so a boundary meet is allowed and postictal T/C is not excluded because the last conjunct only excludes S.</p>
+    </div>
+    <div class="compare-table-wrap">
+      <div class="compare-table-top">
+        <span class="panel-label">Results by formula</span>
+        <span class="compare-total" id="compareTotal">—</span>
+      </div>
+      <table class="compare-table" aria-label="Matched patterns and patients by query formula">
+        <thead><tr><th scope="col">Query</th><th scope="col">Matched patterns</th><th scope="col">Patients matched</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">PGES base</th><td id="cmpBaseM">—</td><td id="cmpBaseP">—</td></tr>
+          <tr class="strict"><th scope="row">PGES strict</th><td id="cmpStrictM">—</td><td id="cmpStrictP">—</td></tr>
+          <tr class="diff"><th scope="row">Base only</th><td id="cmpDiffM">—</td><td id="cmpDiffP">—</td></tr>
+        </tbody>
+      </table>
+      <p class="compare-legend">A <strong>pattern</strong> is one valid witness (x, a, b, c); a <strong>patient</strong> is counted once if any pattern matches. <strong>Base only</strong> means matched by base but not by strict, so patterns can outnumber patients when a case has multiple witnesses.</p>
+    </div>
+  </section>
+
+  <div class="workspace">
+    <section class="records-panel" aria-labelledby="records-title">
+      <div class="section-head">
+        <div>
+          <h2 id="records-title">Evaluation cases</h2>
+          <p id="recordsInfo">All 54 cases are checked against the selected query. Click a case to inspect its interval supports and witness.</p>
+        </div>
+        <div class="section-actions">
+          <button type="button" class="btn btn-ghost btn-small" id="downloadBtn">Download dataset</button>
+          <button type="button" class="btn btn-ghost btn-small" id="downloadEvalBtn">Download pges-manual-eval.json</button>
+        </div>
+      </div>
+      <div class="record-grid" id="recordGrid"></div>
+    </section>
+
+    <aside class="panel audit-panel" id="auditPanel" aria-live="polite" aria-label="Selected record audit">
+      <div class="audit-head">
+        <div>
+          <span class="record-id">Audit</span>
+          <h2>Select a record</h2>
+        </div>
+      </div>
+      <div class="note-box">Run the query and select a record to see its witness and support checks.</div>
+    </aside>
+  </div>
+
+  <section class="explainer" aria-labelledby="explain-title">
+    <div class="section-head">
+      <div>
+        <h2 id="explain-title">What the playground computes</h2>
+        <p>A compact set is enough to expose the interesting failure modes.</p>
+      </div>
+      <a class="btn btn-ghost btn-small" href="qel-reproducibility.html">Read the full guide</a>
+    </div>
+    <div class="explainer-grid">
+      <article class="explain-card">
+        <h3>Interval-ensemble semantics</h3>
+        <p>Each label is a finite union of closed intervals. Displacement, ◊, and □ are implemented as endpoint translation, future-window dilation, and future-window erosion; conjunction is intersection.</p>
+      </article>
+      <article class="explain-card">
+        <h3>Finite witnesses, not sampling</h3>
+        <p>For each seizure episode the demo enumerates boundary-derived candidates for x, a, b, and c, then verifies every candidate with the interval semantics. Use the Solver selector to compare the optimized witness search with the paper finite-cell path. <a href="qel-algorithm.html">See the step-by-step algorithm trace →</a></p>
+      </article>
+      <article class="explain-card">
+        <h3>Two formulas, one evaluation set</h3>
+        <p>Both formulas run on the same cases. Base PGES is deliberately permissive: it does not force T and C intervals to be disjoint, contained, or before the offset, and P may start earlier. Strict PGES uses the exact formula <code>∃x∃a∃b∃c [□<sub>10</sub>∅ ∧ (□<sub>a+b</sub>(S∧¬P))<sub>10</sub> ∧ (◊<sub>a</sub>(T∧¬C))<sub>10</sub> ∧ (◊<sub>b</sub>(C∧¬T))<sub>10+a</sub> ∧ (□<sub>c</sub>(P∧¬S))<sub>10+a+b</sub>]<sub>x</sub></code>. T/C overlap is allowed when each exclusion has a witness, postictal T/C is allowed because the last conjunct excludes S, not T or C, and c may end before P does. The comparison strip keeps both counts visible.</p>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div>54-case synthetic evaluation data from <code>pges-manual-eval.json</code>. Serve the docs folder over HTTP or load the file manually.</div>
+    <div><a href="qel-reproducibility.html">Reproducibility guide</a> · <a href="qel-algorithm.html">Core algorithm</a> · <a href="https://github.com/yhc29/temporal-event-level-inverted-index-rocket">Source repository</a></div>
+  </div>
+</footer>
+
+<script src="qel-query-core.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const core = window.QELCore;
+  if (!core) throw new Error("QEL core failed to load");
+
+  const {
+    EPS,
+    TOL,
+    STRICT_QUIET,
+    iv,
+    norm,
+    contains,
+    intervalAt,
+    pRoom,
+    V,
+    add,
+    A,
+    box,
+    dia,
+    shift,
+    and,
+    not,
+    NOEVENT,
+    GTC_BODY,
+    PGES_BODY,
+    support,
+    halfOpenRecord,
+    findMatches,
+    findMatchesFiniteCell
+  } = core;
+
+  const DEFAULT_AXIS_MAX = 240;
+  let AXIS_MAX = DEFAULT_AXIS_MAX;
+
+  /* ---------- evaluation dataset ---------- */
+  const DEFAULT_EVAL_URL = "./pges-manual-eval.json";
+  let DATASET = [];
+  let EVAL_META = null;
+  let DATASET_ERROR = null;
+
+  /* ---------- formatting ---------- */
+  function round6(n) { return Math.abs(n) < 1e-9 ? 0 : Math.round(n * 1e6) / 1e6; }
+  function fmt(n) {
+    if (n === Infinity) return "∞";
+    if (n === -Infinity) return "−∞";
+    const r = Math.abs(n) < 1e-9 ? 0 : round6(n);
+    return Number.isInteger(r) ? String(r) : r.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  }
+  function fmtSeconds(n) { return `${fmt(n)} s`; }
+  function bracket(i) {
+    const left = i.lc ? "[" : "(";
+    const right = i.rc ? "]" : ")";
+    return `${left}${fmt(i.a)}, ${fmt(i.b)}${right}`;
+  }
+  function formatIE(IE) {
+    if (!IE || !IE.length) return "∅";
+    return IE.map(bracket).join(" ∪ ");
+  }
+  function countEvents(record) {
+    return Object.values(record.supports).reduce((n, IE) => n + IE.length, 0);
+  }
+
+  function computeAxisMax(records, meta) {
+    let maxB = 0;
+    for (const record of records) {
+      for (const intervals of Object.values(record.events || {})) {
+        for (const pair of intervals || []) {
+          if (Number.isFinite(pair[1])) maxB = Math.max(maxB, pair[1]);
+        }
+      }
+    }
+    const metaMax = meta && Array.isArray(meta.axis_seconds) ? Number(meta.axis_seconds[1]) : 0;
+    const target = Math.max(DEFAULT_AXIS_MAX, maxB, Number.isFinite(metaMax) ? metaMax : 0);
+    return Math.ceil(target / 30) * 30;
+  }
+
+  /* ---------- timeline rendering ---------- */
+  function pct(t) { return Math.max(0, Math.min(100, (t / AXIS_MAX) * 100)); }
+  function timelineHTML(record, match, detail) {
+    const labels = ["S", "T", "C", "P"];
+    const rows = labels.map(label => {
+      const IE = record.supports[label] || [];
+      const bars = IE.map(i => {
+        const used = match && match.used && match.used[label] &&
+          Math.abs(match.used[label].a - i.a) < TOL &&
+          Math.abs(match.used[label].b - i.b) < TOL;
+        const left = pct(i.a);
+        const width = Math.max(0.6, pct(i.b) - pct(i.a));
+        return `<span class="tl-bar ${label.toLowerCase()}${used ? " used" : ""}" style="left:${left}%;width:${width}%" title="${label} ${fmt(i.a)}–${fmt(i.b)} s"><span>${label} ${fmt(i.a)}–${fmt(i.b)}</span></span>`;
+      }).join("");
+      return `<div class="tl-row"><div class="tl-track">${bars || '<span class="tl-none"></span>'}</div></div>`;
+    }).join("");
+
+    let axis = "";
+    if (detail) {
+      const step = AXIS_MAX <= 180 ? 30 : 60;
+      const ticks = [];
+      for (let t = 0; t <= AXIS_MAX; t += step) ticks.push(t);
+      axis = `<div class="tl-axis-row"><span></span><div class="tl-axis">${ticks.map(t => `<span style="left:${pct(t)}%">${t}${t === AXIS_MAX ? " s" : ""}</span>`).join("")}</div></div>`;
+    }
+
+    let markers = "";
+    if (detail && match) {
+      const strict = match.formula === "strict";
+      const sStart = strict ? match.x + STRICT_QUIET : match.x;
+      const tonicEnd = sStart + match.a;
+      const offset = sStart + match.a + match.b;
+      const marks = strict
+        ? [
+            { t: match.x, label: "x" },
+            { t: sStart, label: "S=x+10" },
+            { t: tonicEnd, label: "x+10+a" },
+            { t: offset, label: "offset" }
+          ]
+        : [
+            { t: match.x, label: "x" },
+            { t: match.x + match.a, label: "x+a" },
+            { t: match.x + match.a + match.b, label: "x+a+b" }
+          ];
+      if (match.c != null) marks.push({ t: offset + match.c, label: "+c" });
+      if (strict && match.x < 0) marks.splice(0, 1);
+      markers = `<div class="tl-markers">${marks.map(m => `<div class="tl-marker" style="left:${pct(m.t)}%"><span>${m.label}=${fmt(m.t)}</span></div>`).join("")}</div>`;
+    }
+
+    const summary = labels.map(label => `${label}: ${formatIE(record.supports[label] || [])}`).join("; ");
+    return `<div class="timeline${detail ? "" : " mini"}" role="img" aria-label="${summary}">
+      ${axis}
+      <div class="tl-content">
+        <div class="tl-labels" aria-hidden="true">${labels.map(l => `<span>${l}</span>`).join("")}</div>
+        <div class="tl-chart">${rows}${markers}</div>
+      </div>
+    </div>`;
+  }
+
+  /* ---------- state and UI ---------- */
+  const state = {
+    preset: "pges",
+    cMin: 0,
+    solver: "optimized",
+    selectedId: null,
+    selectedMatch: 0,
+    results: null,
+    comparison: null
+  };
+
+  const els = {
+    formulaBar: document.getElementById("formulaBar"),
+    formulaChip: document.getElementById("formulaChip"),
+    formulaGuards: document.getElementById("formulaGuards"),
+    cMin: document.getElementById("cMin"),
+    cMinVal: document.getElementById("cMinVal"),
+    cMinLabel: document.getElementById("cMinLabel"),
+    queryHint: document.getElementById("queryHint"),
+    solverMode: document.getElementById("solverMode"),
+    solverHint: document.getElementById("solverHint"),
+    runBtn: document.getElementById("runBtn"),
+    resetBtn: document.getElementById("resetBtn"),
+    recordGrid: document.getElementById("recordGrid"),
+    auditPanel: document.getElementById("auditPanel"),
+    sumPatients: document.getElementById("sumPatients"),
+    sumPatterns: document.getElementById("sumPatterns"),
+    sumRecords: document.getElementById("sumRecords"),
+    sumRuntime: document.getElementById("sumRuntime"),
+    cmpBaseM: document.getElementById("cmpBaseM"),
+    cmpBaseP: document.getElementById("cmpBaseP"),
+    cmpStrictM: document.getElementById("cmpStrictM"),
+    cmpStrictP: document.getElementById("cmpStrictP"),
+    cmpDiffM: document.getElementById("cmpDiffM"),
+    cmpDiffP: document.getElementById("cmpDiffP"),
+    compareTotal: document.getElementById("compareTotal"),
+    presetButtons: [...document.querySelectorAll("[data-preset]")],
+    downloadBtn: document.getElementById("downloadBtn"),
+    downloadEvalBtn: document.getElementById("downloadEvalBtn"),
+    evalFile: document.getElementById("evalFile"),
+    evalFileName: document.getElementById("evalFileName"),
+    loadEvalBtn: document.getElementById("loadEvalBtn"),
+    restoreDefaultBtn: document.getElementById("restoreDefaultBtn"),
+    evalStatus: document.getElementById("evalStatus"),
+    recordsInfo: document.getElementById("recordsInfo"),
+    datasetInfo: document.getElementById("datasetInfo"),
+    evalMeta: document.getElementById("evalMeta")
+  };
+
+  function currentQuery() {
+    const kind = state.preset === "gtc" ? "gtc" : "pges";
+    return {
+      kind,
+      strict: state.preset === "strict",
+      cMin: kind === "pges" ? state.cMin : 0,
+      quiet: STRICT_QUIET,
+      solver: state.solver
+    };
+  }
+
+  function evaluateQuery(query) {
+    const t0 = performance.now();
+    const solve = query.solver === "paper" && findMatchesFiniteCell ? findMatchesFiniteCell : findMatches;
+    const perRecord = DATASET.map(record => ({ record, matches: solve(record, query) }));
+    const matches = perRecord.reduce((n, item) => n + item.matches.length, 0);
+    const patients = perRecord.filter(item => item.matches.length > 0).length;
+    return { query, perRecord, matches, patients, elapsed: performance.now() - t0 };
+  }
+
+  function runQuery() {
+    const query = currentQuery();
+    if (els.solverHint) {
+      els.solverHint.textContent = query.solver === "paper"
+        ? "Finite-cell representatives; mirrors Algorithm 3."
+        : "Fast endpoint candidates; same semantics.";
+    }
+    state.results = evaluateQuery(query);
+    state.comparison = {
+      base: evaluateQuery({ kind: "pges", strict: false, cMin: state.cMin, quiet: STRICT_QUIET, solver: query.solver }),
+      strict: evaluateQuery({ kind: "pges", strict: true, cMin: state.cMin, quiet: STRICT_QUIET, solver: query.solver })
+    };
+
+    if (!state.results.perRecord.some(item => item.record.id === state.selectedId)) {
+      state.selectedId = state.results.perRecord[0].record.id;
+    }
+    state.selectedMatch = Math.min(state.selectedMatch, Math.max(0, matchCount(state.selectedId) - 1));
+    renderAll();
+  }
+
+  function matchCount(id) {
+    if (!state.results) return 0;
+    const item = state.results.perRecord.find(x => x.record.id === id);
+    return item ? item.matches.length : 0;
+  }
+
+  function renderFormula() {
+    const pges = state.preset !== "gtc";
+    const strict = state.preset === "strict";
+    const q = pges ? "∃x ∃a ∃b ∃c" : "∃x ∃a ∃b";
+    const pConj = pges
+      ? `<span class="op">∧</span><span class="paren">(</span><span class="op">□</span><sub>c</sub><span class="ev p">P</span><span class="paren">)</span><sub>a+b</sub>`
+      : "";
+    const strictHTML = `
+      <span class="q">∃x ∃a ∃b ∃c</span>
+      <span class="br">[</span>
+      <span class="op">□</span><sub>10</sub><span class="ev empty">∅</span>
+      <span class="op">∧</span>
+      <span class="paren">(</span><span class="op">□</span><sub>a+b</sub><span class="paren">(</span><span class="ev s">S</span><span class="op">∧</span><span class="op">¬</span><span class="ev p">P</span><span class="paren">)</span><span class="paren">)</span><sub>10</sub>
+      <span class="op">∧</span>
+      <span class="paren">(</span><span class="op">◊</span><sub>a</sub><span class="paren">(</span><span class="ev t">T</span><span class="op">∧</span><span class="op">¬</span><span class="ev c">C</span><span class="paren">)</span><span class="paren">)</span><sub>10</sub>
+      <span class="op">∧</span>
+      <span class="paren">(</span><span class="op">◊</span><sub>b</sub><span class="paren">(</span><span class="ev c">C</span><span class="op">∧</span><span class="op">¬</span><span class="ev t">T</span><span class="paren">)</span><span class="paren">)</span><sub>10+a</sub>
+      <span class="op">∧</span>
+      <span class="paren">(</span><span class="op">□</span><sub>c</sub><span class="paren">(</span><span class="ev p">P</span><span class="op">∧</span><span class="op">¬</span><span class="ev s">S</span><span class="paren">)</span><span class="paren">)</span><sub>10+a+b</sub>
+      <span class="br">]</span><sub class="q">x</sub>`;
+    els.formulaBar.innerHTML = strict ? strictHTML : `
+      <span class="q">${q}</span>
+      <span class="br">[</span>
+      <span class="op">□</span><sub>a+b</sub><span class="ev s">S</span>
+      <span class="op">∧</span>
+      <span class="op">◊</span><sub>a</sub><span class="ev t">T</span>
+      <span class="op">∧</span>
+      <span class="paren">(</span><span class="op">◊</span><sub>b</sub><span class="ev c">C</span><span class="paren">)</span><sub>a</sub>
+      ${pConj}
+      <span class="br">]</span><sub class="q">x</sub>`;
+    els.formulaBar.closest(".formula-bar").classList.toggle("strict-formula", strict);
+
+    if (strict) {
+      els.formulaChip.hidden = false;
+      els.formulaChip.textContent = state.cMin > 0 ? `strict · c ≥ ${state.cMin} s` : "strict formula";
+    } else if (pges && state.cMin > 0) {
+      els.formulaChip.hidden = false;
+      els.formulaChip.textContent = `witness filter: c ≥ ${state.cMin} s`;
+    } else if (!pges) {
+      els.formulaChip.hidden = false;
+      els.formulaChip.textContent = "P conjunct removed";
+    } else {
+      els.formulaChip.hidden = true;
+      els.formulaChip.textContent = "";
+    }
+
+    els.formulaGuards.hidden = !strict;
+    els.formulaGuards.innerHTML = strict
+      ? [
+          `<span class="guard-chip strict">∅ = no S/T/C/P event</span>`,
+          `<span class="guard-chip">x is ${STRICT_QUIET} s before S</span>`
+        ].join("")
+      : "";
+
+    els.cMin.disabled = !pges;
+    els.cMinLabel.textContent = pges ? "Suppression witness filter" : "Suppression filter (PGES only)";
+    els.cMinVal.textContent = pges ? String(state.cMin) : "—";
+    if (strict) {
+      els.queryHint.innerHTML = `<strong>PGES strict (one formula):</strong> x is the pre-ictal anchor, so S starts at x+${STRICT_QUIET}. The conjuncts require a ${STRICT_QUIET} s no-event prefix, S without P, T without C, C without T, and P without S postictally. Strict supports are half-open, so a boundary meet is not an overlap; c is the maximal P∧¬S run before the filter.`;
+    } else if (pges) {
+      els.queryHint.innerHTML = "<strong>PGES base (permissive):</strong> T only has to occur in the tonic window and C in the clonic window. Their intervals may overlap or extend outside S, and P may start before the offset. The slider adds c ≥ n seconds. Use PGES strict for the exact formula.";
+    } else {
+      els.queryHint.innerHTML = "<strong>GTC:</strong> keep the first three conjuncts only. The record must contain a continuous S block with T in the first a and C in the next b. The suppression P and the c filter are removed.";
+    }
+  }
+
+  function expectedAgreement() {
+    if (!state.results) return null;
+    const baseRun = evaluateQuery({ kind: "pges", strict: false, cMin: 0, quiet: STRICT_QUIET, solver: state.solver });
+    const strictRun = evaluateQuery({ kind: "pges", strict: true, cMin: 0, quiet: STRICT_QUIET, solver: state.solver });
+    const result = {
+      base: { ok: 0, total: 0, bad: [] },
+      strict: { ok: 0, total: 0, bad: [] }
+    };
+    const check = (expected, actual) => {
+      if (!expected) return true;
+      if (!!expected.shouldMatch !== (actual > 0)) return false;
+      if (expected.minPatterns && actual < expected.minPatterns) return false;
+      return true;
+    };
+    for (const record of DATASET) {
+      const baseItem = baseRun.perRecord.find(x => x.record.id === record.id);
+      const strictItem = strictRun.perRecord.find(x => x.record.id === record.id);
+      const baseActual = baseItem ? baseItem.matches.length : 0;
+      const strictActual = strictItem ? strictItem.matches.length : 0;
+      if (record.expected) {
+        result.base.total++;
+        if (check(record.expected, baseActual)) result.base.ok++;
+        else result.base.bad.push(record.id);
+      }
+      if (record.expected_strict) {
+        result.strict.total++;
+        if (check(record.expected_strict, strictActual)) result.strict.ok++;
+        else result.strict.bad.push(record.id);
+      }
+    }
+    return result;
+  }
+
+  function renderSummary() {
+    if (els.sumRecords) els.sumRecords.textContent = DATASET.length ? String(DATASET.length) : "—";
+    if (els.datasetInfo) {
+      if (DATASET.length) {
+        els.datasetInfo.textContent = `${DATASET.length} cases · 0–${AXIS_MAX} s · closed intervals; strict uses half-open meets`;
+      } else {
+        els.datasetInfo.textContent = DATASET_ERROR ? "Evaluation set unavailable" : "Loading 54-case evaluation set…";
+      }
+    }
+    if (els.evalMeta) {
+      if (DATASET.length && EVAL_META) {
+        const agree = expectedAgreement();
+        const agreeText = agree
+          ? ` Expected agreement at c ≥ 0: <strong class="${agree.base.bad.length ? "fail" : "pass"}">base ${agree.base.ok}/${agree.base.total}</strong>, <strong class="${agree.strict.bad.length ? "fail" : "pass"}">strict ${agree.strict.ok}/${agree.strict.total}</strong>${agree.base.bad.length || agree.strict.bad.length ? " · mismatches " + [...agree.base.bad, ...agree.strict.bad].join(", ") : ""}.`
+          : "";
+        els.evalMeta.innerHTML = `<strong>Evaluation set:</strong> ${EVAL_META.name} v${EVAL_META.version || "?"} · ${DATASET.length} cases.${agreeText}`;
+      } else if (DATASET_ERROR) {
+        els.evalMeta.innerHTML = `<strong>Evaluation set:</strong> ${DATASET_ERROR}`;
+      } else {
+        els.evalMeta.innerHTML = "<strong>Evaluation set:</strong> loading pges-manual-eval.json…";
+      }
+    }
+    if (!state.results) {
+      els.sumPatients.textContent = "—";
+      els.sumPatterns.textContent = "—";
+      els.sumRuntime.textContent = "—";
+      return;
+    }
+    els.sumPatients.textContent = `${state.results.patients} / ${DATASET.length}`;
+    els.sumPatterns.textContent = String(state.results.matches);
+    els.sumRuntime.textContent = `${state.results.elapsed.toFixed(2)} ms`;
+  }
+
+  function baseOnlyCounts(cmp) {
+    let patterns = 0;
+    let patients = 0;
+    for (const item of cmp.base.perRecord) {
+      const strictItem = cmp.strict.perRecord.find(x => x.record.id === item.record.id);
+      const strictMatches = strictItem ? strictItem.matches.length : 0;
+      patterns += Math.max(0, item.matches.length - strictMatches);
+      if (item.matches.length > 0 && strictMatches === 0) patients++;
+    }
+    return { patterns, patients };
+  }
+
+  function renderComparison() {
+    const cmp = state.comparison;
+    if (els.compareTotal) els.compareTotal.textContent = DATASET.length ? `${DATASET.length} cases` : "—";
+    if (!cmp) {
+      [els.cmpBaseM, els.cmpBaseP, els.cmpStrictM, els.cmpStrictP, els.cmpDiffM, els.cmpDiffP].forEach(el => { if (el) el.textContent = "—"; });
+      return;
+    }
+    const diff = baseOnlyCounts(cmp);
+    els.cmpBaseM.textContent = String(cmp.base.matches);
+    els.cmpBaseP.textContent = String(cmp.base.patients);
+    els.cmpStrictM.textContent = String(cmp.strict.matches);
+    els.cmpStrictP.textContent = String(cmp.strict.patients);
+    els.cmpDiffM.textContent = String(diff.patterns);
+    els.cmpDiffP.textContent = String(diff.patients);
+  }
+
+  function renderRecordGrid() {
+    if (els.recordsInfo) {
+      els.recordsInfo.textContent = DATASET.length
+        ? `All ${DATASET.length} cases are checked against the selected query. Click a case to inspect its interval supports and witness.`
+        : DATASET_ERROR
+          ? "No cases loaded. Choose a JSON file or reload the 54-case set."
+          : "All 54 cases are checked against the selected query. Click a case to inspect its interval supports and witness.";
+    }
+    if (!DATASET.length) {
+      els.recordGrid.innerHTML = `<div class="note-box" style="grid-column:1/-1">${DATASET_ERROR ? DATASET_ERROR : "Loading the 54-case evaluation set…"}</div>`;
+      return;
+    }
+    els.recordGrid.innerHTML = DATASET.map(record => {
+      const item = state.results ? state.results.perRecord.find(x => x.record.id === record.id) : null;
+      const matches = item ? item.matches : null;
+      let badge = '<span class="badge pending">pending</span>';
+      if (matches) {
+        badge = matches.length
+          ? `<span class="badge pass">${matches.length} pattern${matches.length > 1 ? "s" : ""}</span>`
+          : '<span class="badge fail">no match</span>';
+      }
+      const selected = record.id === state.selectedId;
+      const classes = ["record-card"];
+      if (selected) classes.push("is-selected");
+      if (matches && matches.length) classes.push("is-match");
+      if (matches && !matches.length) classes.push("is-miss");
+      const expected = record.expected || null;
+      const expectedStrict = record.expected_strict || null;
+      const expBits = [];
+      if (expected) expBits.push(`base ${expected.shouldMatch ? "match" : "no match"}`);
+      if (expectedStrict) expBits.push(`strict ${expectedStrict.shouldMatch ? "match" : "no match"}`);
+      const cat = record.category ? `<span class="badge pending" style="margin-left:4px;">${record.category}</span>` : "";
+      return `<button type="button" class="${classes.join(" ")}" data-record="${record.id}" aria-pressed="${selected}">
+        <div class="record-head">
+          <div><span class="record-id">${record.id}${cat}</span><h3>${record.title || record.note || record.id}</h3></div>
+          ${badge}
+        </div>
+        ${timelineHTML(record, null, false)}
+        <div class="record-foot"><span>${record.note || ""}${expBits.length ? " • expected: " + expBits.join(" / ") : ""}</span><span class="record-count">${countEvents(record)} iv</span></div>
+      </button>`;
+    }).join("");
+  }
+
+  function traceRows(record, match, kind) {
+    const env = { x: match.x, a: match.a, b: match.b, c: match.c };
+    const rows = [];
+    const addRow = (condition, expr, point) => {
+      const sup = support(expr, env, record);
+      rows.push({ condition, support: sup, point, pass: contains(sup, point) });
+    };
+    if (match.formula === "strict") {
+      const strictRecord = halfOpenRecord(record);
+      const strictRow = (condition, expr) => {
+        const sup = support(expr, env, strictRecord);
+        rows.push({ condition, support: sup, point: match.x, pass: contains(sup, match.x) });
+      };
+      strictRow(`□<sub>${STRICT_QUIET}</sub>∅`, box(STRICT_QUIET, NOEVENT));
+      strictRow(`(□<sub>${fmt(match.a + match.b)}</sub>(S ∧ ¬P))<sub>${STRICT_QUIET}</sub>`, shift(STRICT_QUIET, box(add(V("a"), V("b")), and(A("S"), not(A("P"))))));
+      strictRow(`(◊<sub>${fmt(match.a)}</sub>(T ∧ ¬C))<sub>${STRICT_QUIET}</sub>`, shift(STRICT_QUIET, dia(V("a"), and(A("T"), not(A("C"))))));
+      strictRow(`(◊<sub>${fmt(match.b)}</sub>(C ∧ ¬T))<sub>${STRICT_QUIET}+${fmt(match.a)}</sub>`, shift(add(STRICT_QUIET, V("a")), dia(V("b"), and(A("C"), not(A("T"))))));
+      strictRow(`(□<sub>${fmt(match.c)}</sub>(P ∧ ¬S))<sub>${STRICT_QUIET}+${fmt(match.a)}+${fmt(match.b)}</sub>`, shift(add(add(STRICT_QUIET, V("a")), V("b")), box(V("c"), and(A("P"), not(A("S"))))));
+      return rows;
+    }
+    addRow(`□<sub>${fmt(match.a + match.b)}</sub>S`, box(add(V("a"), V("b")), A("S")), match.x);
+    addRow(`◊<sub>${fmt(match.a)}</sub>T`, dia(V("a"), A("T")), match.x);
+    addRow(`(◊<sub>${fmt(match.b)}</sub>C)<sub>${fmt(match.a)}</sub>`, shift(V("a"), dia(V("b"), A("C"))), match.x);
+    if (kind === "pges") {
+      addRow(`(□<sub>${fmt(match.c)}</sub>P)<sub>${fmt(match.a + match.b)}</sub>`, shift(add(V("a"), V("b")), box(V("c"), A("P"))), match.x);
+    }
+    return rows;
+  }
+
+  function lastPointIn(IE, lo, hi) {
+    for (let idx = IE.length - 1; idx >= 0; idx--) {
+      const i = IE[idx];
+      const a = Math.max(i.a, lo);
+      const b = Math.min(i.b, hi);
+      if (b < a - TOL) continue;
+      for (const p of [b, (a + b) / 2, a]) {
+        if (p >= lo - TOL && p <= hi + TOL && contains(IE, p)) return p;
+      }
+    }
+    return null;
+  }
+
+  function strictDiagnosis(record) {
+    const formulaRecord = halfOpenRecord(record);
+    const S = formulaRecord.supports.S || [];
+    const T = formulaRecord.supports.T || [];
+    const C = formulaRecord.supports.C || [];
+    const P = formulaRecord.supports.P || [];
+    if (!S.length) return "No seizure interval S is annotated, so the strict formula has no candidate.";
+    if (!T.length) return "No tonic phase T is annotated; T ∧ ¬C cannot be satisfied.";
+    if (!C.length) return "No clonic phase C is annotated; C ∧ ¬T cannot be satisfied.";
+    if (!P.length) return "No suppression phase P is annotated; P ∧ ¬S cannot be satisfied.";
+
+    const tOnly = support(and(A("T"), not(A("C"))), {}, formulaRecord);
+    const cOnly = support(and(A("C"), not(A("T"))), {}, formulaRecord);
+
+    for (const s of S) {
+      const s0 = s.a;
+      const e0 = s.b;
+      const x = s0 - STRICT_QUIET;
+      for (const label of ["S", "T", "C", "P"]) {
+        const hit = (record.supports[label] || []).find(i => i.b > x + TOL && i.a < s0 - TOL);
+        if (hit) return `10 s no-event prefix [${fmt(x)}, ${fmt(s0)}) fails: ${label} ${bracket(hit)} intersects it.`;
+      }
+      const pOverlap = P.find(p => p.a < e0 - TOL && p.b > s0 + TOL);
+      if (pOverlap) return `S ∧ ¬P fails: P ${bracket(pOverlap)} overlaps S ${bracket(s)}.`;
+      const tPoint = firstPointIn(tOnly, s0, e0);
+      if (tPoint == null) return `T ∧ ¬C has no point inside S ${bracket(s)}; T is entirely covered by C there.`;
+      const cPoint = lastPointIn(cOnly, s0, e0);
+      if (cPoint == null) return `C ∧ ¬T has no point inside S ${bracket(s)}; C is entirely covered by T there.`;
+      if (tPoint >= cPoint - TOL) return `No a can place a T ∧ ¬C point before a C ∧ ¬T point inside S ${bracket(s)}.`;
+      const post = support(and(A("P"), not(A("S"))), {}, formulaRecord);
+      if (!intervalAt(post, e0)) return `P ∧ ¬S fails at offset ${fmt(e0)} s: no P-only interval starts covering the seizure offset.`;
+      if (pRoom(post, e0) == null) return `P ∧ ¬S fails after offset ${fmt(e0)} s: P without S has no positive duration there.`;
+    }
+    return "No assignment of x, a, b, and c satisfies all strict conjuncts. Inspect the interval supports for □10∅, S∧¬P, T∧¬C, C∧¬T, and P∧¬S.";
+  }
+
+  function diagnose(record, query) {
+    if (query.strict) return strictDiagnosis(record);
+    const S = record.supports.S || [];
+    const T = record.supports.T || [];
+    const C = record.supports.C || [];
+    const P = record.supports.P || [];
+    if (!S.length) return "No seizure interval S is annotated in this BEST.";
+    if (!T.length) return "No tonic phase T is annotated in this BEST.";
+    if (!C.length) return "No clonic phase C is annotated in this BEST.";
+
+    for (const s of S) {
+      const x = s.a;
+      const tAfter = T.filter(t => t.b > x + TOL);
+      if (!tAfter.length) return "The tonic phase lies outside the seizure interval; no T occurrence is available after the anchor.";
+      const t = tAfter[0];
+      const cAfter = C.filter(c => c.b > x + TOL);
+      if (!cAfter.length) return "No clonic phase C occurs after the seizure anchor.";
+      if (cAfter[0].b <= t.a + TOL) return "The clonic phase is ordered before the tonic phase, so no a can place T before C.";
+    }
+
+    if (query.kind === "pges") {
+      if (!P.length) return "No suppression phase P is annotated; the PGES conjunct cannot be satisfied.";
+      const relaxed = findMatches(record, { kind: "pges", strict: false, cMin: 0, quiet: query.quiet });
+      if (relaxed.length && query.cMin > 0) {
+        const best = Math.max(...relaxed.map(m => m.c));
+        return `A PGES witness exists with c = ${fmt(best)} s, but the current witness filter requires c ≥ ${query.cMin} s. Lower the filter to include this record.`;
+      }
+      for (const s of S) {
+        const sEnd = s.b;
+        const pAfter = P.find(p => p.a >= sEnd - TOL);
+        if (pAfter) return `The suppression phase starts at ${fmt(pAfter.a)} s, after the chosen seizure offset at ${fmt(sEnd)} s. PGES anchors P at x+a+b, so a gap breaks the box condition.`;
+        const pBefore = P.find(p => p.b <= sEnd + TOL);
+        if (pBefore) return `The suppression phase is not active after the seizure offset (it ends at ${fmt(pBefore.b)} s). The PGES conjunct requires P to hold immediately after x+a+b.`;
+      }
+    }
+    return "No assignment of x, a, b, and c satisfies all conjuncts. Inspect the timeline and the support checks in the reproducibility guide.";
+  }
+
+  function expectedHTML(record) {
+    const base = record.expected || null;
+    const strict = record.expected_strict || null;
+    if (!base && !strict) return "";
+    const line = (label, expected) => {
+      if (!expected) return "";
+      const count = expected.minPatterns ? `, min ${expected.minPatterns} pattern${expected.minPatterns > 1 ? "s" : ""}` : "";
+      return `<div style="margin-top:6px"><strong>${label}:</strong> ${expected.shouldMatch ? "match" : "no match"}${count}${expected.reason ? " — " + expected.reason : ""}</div>`;
+    };
+    return `<div class="audit-section"><h3>Expected (manual eval)</h3><div class="note-box">${line("base", base)}${line("strict", strict)}</div></div>`;
+  }
+
+  function renderAudit() {
+    const record = DATASET.find(r => r.id === state.selectedId);
+    if (!record) {
+      els.auditPanel.innerHTML = '<div class="note-box">Select a record to inspect it.</div>';
+      return;
+    }
+    const item = state.results ? state.results.perRecord.find(x => x.record.id === record.id) : null;
+    const matches = item ? item.matches : [];
+    const hasResult = !!item;
+
+    if (!hasResult) {
+      els.auditPanel.innerHTML = `
+        <div class="audit-head">
+          <div><span class="record-id">${record.id}</span><h2>${record.title}</h2></div>
+          <span class="badge pending">pending</span>
+        </div>
+        ${timelineHTML(record, null, true)}
+        <div class="note-box" style="margin-top:14px">Run the query to audit this record.</div>`;
+      return;
+    }
+
+    if (!matches.length) {
+      const diagnosis = diagnose(record, state.results.query);
+      const expHtml = expectedHTML(record);
+      els.auditPanel.innerHTML = `
+        <div class="audit-head">
+          <div><span class="record-id">${record.id}</span><h2>${record.title || record.note || record.id}</h2>${record.category ? '<div style="margin-top:4px"><span class="badge pending">'+record.category+'</span></div>' : ""}</div>
+          <span class="badge fail">no match</span>
+        </div>${expHtml}
+        ${timelineHTML(record, null, true)}
+        <div class="audit-section">
+          <h3>${state.results.query.strict ? "Why the strict query excludes this record" : "Why this record is excluded"}</h3>
+          <div class="diagnosis"><strong>No witness found</strong>${diagnosis}</div>
+        </div>
+        <div class="audit-section">
+          <h3>Record note</h3>
+          <div class="note-box">${record.note}</div>
+        </div>
+        <div class="audit-section">
+          <h3>Intervals in this BEST</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Label</th><th>Interval ensemble</th></tr></thead>
+              <tbody>
+                ${["S", "T", "C", "P"].map(label => `<tr><td>${label}</td><td><code>${formatIE(record.supports[label] || [])}</code></td></tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      return;
+    }
+
+    state.selectedMatch = Math.min(state.selectedMatch, matches.length - 1);
+    const match = matches[state.selectedMatch];
+    const kind = state.results.query.kind;
+    const rows = traceRows(record, match, kind);
+    const witnessCards = [
+      `<div class="witness s"><span>x</span><strong>${fmt(match.x)}</strong></div>`,
+      `<div class="witness t"><span>a</span><strong>${fmt(match.a)}</strong></div>`,
+      `<div class="witness c"><span>b</span><strong>${fmt(match.b)}</strong></div>`
+    ];
+    if (kind === "pges") {
+      witnessCards.push(`<div class="witness p"><span>c</span><strong>${fmt(match.c)}</strong></div>`);
+    }
+
+    const picker = matches.length > 1
+      ? `<div class="match-picker" role="group" aria-label="Choose a matched pattern">${matches.map((m, i) => `<button type="button" data-match-index="${i}" aria-pressed="${i === state.selectedMatch}">Pattern ${i + 1}: x=${fmt(m.x)}, c=${m.c == null ? "—" : fmt(m.c)}</button>`).join("")}</div>`
+      : "";
+
+    const trace = `
+      <div class="trace">
+        <h3>Support checks at the witness</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Conjunct</th><th>Support</th><th>Point</th><th>Check</th></tr></thead>
+            <tbody>
+              ${rows.map(r => `<tr><td><code>${r.condition}</code></td><td><code>${formatIE(r.support)}</code></td><td><code>${fmt(r.point)}</code></td><td class="${r.pass ? "pass" : "fail"}">${r.pass ? "true" : "false"}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+    const strict = match.formula === "strict";
+    const sStart = strict ? match.sStart : match.x;
+    const offset = strict ? match.offset : match.y;
+    const pEnd = strict ? match.pEnd : match.y + match.c;
+    const extra = kind === "pges"
+      ? strict
+        ? `The P ∧ ¬S window reaches ${fmt(pEnd)} s; P may continue after the c witness. Seizure offset = ${fmt(offset)} s. S starts at x+${STRICT_QUIET} = ${fmt(sStart)} s; quiet prefix [${fmt(match.x)}, ${fmt(sStart)}).${match.x < 0 ? " x is before the 0 s axis; the prefix is clipped at 0 in the chart." : ""}`
+        : `P ends at ${fmt(pEnd)} s; seizure offset = ${fmt(offset)} s.`
+      : `Seizure offset = ${fmt(offset)} s.`;
+    const modeLabel = strict ? "PGES STRICT" : kind.toUpperCase();
+    const witnessLine = strict
+      ? `x=${fmt(match.x)} s (pre-ictal anchor), a=${fmt(match.a)} s, b=${fmt(match.b)} s, c=${fmt(match.c)} s.`
+      : `x=${fmt(match.x)} s, a=${fmt(match.a)} s, b=${fmt(match.b)} s${kind === "pges" ? `, c=${fmt(match.c)} s` : ""}.`;
+
+    const expHtml = expectedHTML(record);
+
+    els.auditPanel.innerHTML = `
+      <div class="audit-head">
+        <div><span class="record-id">${record.id}</span><h2>${record.title || record.note || record.id}</h2>${record.category ? '<div style="margin-top:4px"><span class="badge pending">'+record.category+'</span></div>' : ""}</div>
+        <span class="badge pass">${matches.length} pattern${matches.length > 1 ? "s" : ""}</span>
+      </div>${expHtml}
+      ${timelineHTML(record, match, true)}
+      <div class="witness-grid">${witnessCards.join("")}</div>
+      ${picker}
+      <div class="note-box">${record.note || ""}<br><br><strong>${modeLabel}</strong> witness: ${witnessLine} ${extra}</div>
+      ${trace}
+      <div class="audit-section">
+        <h3>Used intervals</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Role</th><th>Interval</th></tr></thead>
+            <tbody>
+              ${["S", "T", "C", "P"].filter(label => match.used[label]).map(label => `<tr><td>${label}</td><td><code>${bracket(match.used[label])}</code></td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function renderAll() {
+    renderFormula();
+    renderSummary();
+    renderComparison();
+    renderRecordGrid();
+    renderAudit();
+  }
+
+  /* ---------- events ---------- */
+  els.presetButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      state.preset = button.dataset.preset;
+      if (state.preset === "gtc") state.cMin = 0;
+      els.cMin.value = String(state.cMin);
+      els.cMinVal.textContent = state.preset !== "gtc" ? String(state.cMin) : "—";
+      els.presetButtons.forEach(b => b.setAttribute("aria-pressed", String(b === button)));
+      runQuery();
+    });
+  });
+
+  els.cMin.addEventListener("input", () => {
+    state.cMin = Number(els.cMin.value);
+    els.cMinVal.textContent = String(state.cMin);
+    if (state.preset !== "gtc") runQuery();
+  });
+
+  if (els.solverMode) {
+    els.solverMode.addEventListener("change", () => {
+      state.solver = els.solverMode.value;
+      runQuery();
+    });
+  }
+
+  els.runBtn.addEventListener("click", runQuery);
+
+  els.resetBtn.addEventListener("click", () => {
+    state.preset = "pges";
+    state.cMin = 0;
+    state.solver = "optimized";
+    state.selectedId = DATASET[0] ? DATASET[0].id : null;
+    state.selectedMatch = 0;
+    els.cMin.value = "0";
+    els.cMinVal.textContent = "0";
+    if (els.solverMode) els.solverMode.value = "optimized";
+    els.presetButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.preset === "pges")));
+    runQuery();
+  });
+
+  els.recordGrid.addEventListener("click", event => {
+    const card = event.target.closest("[data-record]");
+    if (!card) return;
+    state.selectedId = card.dataset.record;
+    state.selectedMatch = 0;
+    renderRecordGrid();
+    renderAudit();
+  });
+
+  els.auditPanel.addEventListener("click", event => {
+    const button = event.target.closest("[data-match-index]");
+    if (!button) return;
+    state.selectedMatch = Number(button.dataset.matchIndex);
+    renderAudit();
+  });
+
+  function downloadJSON(payload, filename) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  els.downloadBtn.addEventListener("click", () => {
+    const records = DATASET.map(record => ({
+      id: record.id,
+      title: record.title,
+      note: record.note,
+      category: record.category || undefined,
+      expected: record.expected || undefined,
+      expected_strict: record.expected_strict || undefined,
+      relation_focus: record.relation_focus || undefined,
+      events: record.events
+    }));
+    downloadJSON({
+      name: "pges-manual-eval-current",
+      description: "Synthetic BEST records for the current QEL evaluation set. Times are in seconds; intervals are closed.",
+      axis_seconds: [0, AXIS_MAX],
+      labels: ["S", "T", "C", "P"],
+      records
+    }, "pges-manual-eval-current.json");
+  });
+
+  if (els.downloadEvalBtn) {
+    els.downloadEvalBtn.addEventListener("click", () => {
+      if (EVAL_META) {
+        downloadJSON(EVAL_META, "pges-manual-eval.json");
+        return;
+      }
+      fetch("./pges-manual-eval.json")
+        .then(r => {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(json => downloadJSON(json, "pges-manual-eval.json"))
+        .catch(() => {
+          alert("Could not download pges-manual-eval.json. Serve the docs directory over HTTP or load the file manually.");
+        });
+    });
+  }
+
+  function resetEvalFileInput() {
+    if (els.evalFile) els.evalFile.value = "";
+    if (els.evalFileName) els.evalFileName.textContent = "No file selected";
+    if (els.loadEvalBtn) els.loadEvalBtn.disabled = true;
+  }
+
+  function loadEvaluationDataset(json) {
+    try {
+      if (!json || !json.cases) {
+        throw new Error("Invalid evaluation JSON: missing cases");
+      }
+      const allowedLabels = new Set(["S", "T", "C", "P"]);
+      const cases = json.cases.map(c => {
+        const rawEvents = c.events || {};
+        const supports = {};
+        for (const [label, intervals] of Object.entries(rawEvents)) {
+          if (!allowedLabels.has(label)) {
+            throw new Error(`${c.id}: unsupported label ${label}`);
+          }
+          for (const pair of (intervals || [])) {
+            if (!Array.isArray(pair) || pair.length !== 2 || !Number.isFinite(pair[0]) || !Number.isFinite(pair[1]) || pair[0] > pair[1]) {
+              throw new Error(`${c.id}: invalid ${label} interval`);
+            }
+          }
+          supports[label] = norm((intervals || []).map(([a, b]) => iv(a, b)));
+        }
+        return {
+          id: c.id,
+          title: c.title || c.id,
+          note: c.note || "",
+          category: c.category || "",
+          expected: c.expected || null,
+          expected_strict: c.expected_strict || null,
+          relation_focus: c.relation_focus || null,
+          events: rawEvents,
+          supports,
+          gtcBody: GTC_BODY,
+          pgesBody: PGES_BODY
+        };
+      });
+      DATASET = cases;
+      EVAL_META = json;
+      DATASET_ERROR = null;
+      AXIS_MAX = computeAxisMax(DATASET, EVAL_META);
+      state.selectedId = DATASET[0] ? DATASET[0].id : null;
+      state.selectedMatch = 0;
+      state.results = null;
+      if (els.evalStatus) els.evalStatus.textContent = `${DATASET.length} cases loaded`;
+      runQuery();
+      return true;
+    } catch (e) {
+      DATASET_ERROR = "Could not load the evaluation JSON: " + e.message;
+      if (els.evalStatus) els.evalStatus.textContent = DATASET_ERROR;
+      alert("Failed to load evaluation dataset: " + e.message);
+      return false;
+    }
+  }
+
+  async function loadDefaultDataset() {
+    DATASET_ERROR = null;
+    if (els.evalStatus) els.evalStatus.textContent = "Loading 54-case set…";
+    try {
+      const response = await fetch(DEFAULT_EVAL_URL, { cache: "no-store" });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const json = await response.json();
+      if (!loadEvaluationDataset(json)) {
+        DATASET = [];
+        EVAL_META = null;
+        state.results = null;
+        state.comparison = null;
+        state.selectedId = null;
+        renderAll();
+        return;
+      }
+      resetEvalFileInput();
+    } catch (e) {
+      DATASET = [];
+      EVAL_META = null;
+      DATASET_ERROR = "Could not load pges-manual-eval.json. Serve the docs folder over HTTP or load the file manually.";
+      state.results = null;
+      state.comparison = null;
+      state.selectedId = null;
+      if (els.evalStatus) els.evalStatus.textContent = DATASET_ERROR;
+      renderAll();
+    }
+  }
+
+  if (els.evalFile) {
+    els.evalFile.addEventListener("change", () => {
+      const file = els.evalFile.files && els.evalFile.files[0];
+      if (els.evalFileName) els.evalFileName.textContent = file ? file.name : "No file selected";
+      if (els.loadEvalBtn) els.loadEvalBtn.disabled = !file;
+    });
+  }
+
+  if (els.loadEvalBtn) {
+    els.loadEvalBtn.addEventListener("click", () => {
+      const file = els.evalFile && els.evalFile.files && els.evalFile.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const json = JSON.parse(ev.target.result);
+            loadEvaluationDataset(json);
+          } catch (e) {
+            if (els.evalStatus) els.evalStatus.textContent = "Parse error: " + e.message;
+            alert("Invalid JSON: " + e.message);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        if (els.evalStatus) els.evalStatus.textContent = "Choose a JSON file first.";
+      }
+    });
+  }
+
+  if (els.restoreDefaultBtn) {
+    els.restoreDefaultBtn.addEventListener("click", loadDefaultDataset);
+  }
+
+  /* ---------- initial render ---------- */
+  renderAll();
+  loadDefaultDataset();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A reproducibility guide to BEST, QEL query construction, and the PGES cohort query from the QEL paper.">
+<title>QEL / BEST Reproducibility Guide — PGES Cohort</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318212b'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='20' font-weight='700' fill='white' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --paper: #fffdf9;
+    --ink: #18212b;
+    --ink-soft: #3f4b57;
+    --muted: #6b7480;
+    --line: #ddd6cb;
+    --line-strong: #c9c0b2;
+    --accent: #0b6b63;
+    --accent-soft: #e3f2ef;
+    --amber: #a85d08;
+    --amber-soft: #fbefdd;
+    --blue: #2459a8;
+    --blue-soft: #e8eef9;
+    --red: #b13a31;
+    --red-soft: #fbe8e5;
+    --purple: #6941a5;
+    --purple-soft: #efe8f8;
+    --green: #1e7a4b;
+    --green-soft: #e5f3ea;
+    --shadow: 0 18px 50px rgba(24, 33, 43, .08);
+    --radius: 18px;
+    --max: 1180px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 8% -5%, rgba(11,107,99,.10), transparent 32rem),
+      radial-gradient(circle at 95% 12%, rgba(168,93,8,.08), transparent 30rem),
+      var(--bg);
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:hover { color: #084e48; }
+  code, pre, .mono { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; }
+  .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
+  .skip {
+    position: absolute; left: -999px; top: 8px; z-index: 100;
+    background: var(--ink); color: white; padding: 10px 14px; border-radius: 8px;
+  }
+  .skip:focus { left: 8px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(245,243,238,.86);
+    border-bottom: 1px solid rgba(201,192,178,.55);
+    backdrop-filter: blur(14px);
+  }
+  .topbar-inner {
+    display: flex; align-items: center; gap: 22px; min-height: 68px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--ink);
+    margin-right: auto;
+  }
+  .brand-mark {
+    display: grid; place-items: center;
+    width: 36px; height: 36px; border-radius: 11px;
+    background: var(--ink); color: #fff; font: 700 18px/1 ui-serif, Georgia, serif;
+    box-shadow: 0 6px 16px rgba(24,33,43,.18);
+  }
+  .brand b { display: block; font-size: 14px; letter-spacing: .03em; }
+  .brand small { display: block; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .topnav { display: flex; gap: 20px; align-items: center; }
+  .topnav a { color: var(--ink-soft); text-decoration: none; font-size: 13px; font-weight: 600; }
+  .topnav a:hover { color: var(--accent); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid transparent; border-radius: 999px; padding: 11px 18px;
+    font: 650 13px/1.2 inherit; text-decoration: none; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 9px 22px rgba(11,107,99,.22); }
+  .btn-primary:hover { color: #fff; background: #085b54; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn-ghost:hover { background: rgba(255,255,255,.55); }
+  .btn-small { padding: 9px 14px; font-size: 12px; }
+  .hero { padding: 72px 0 34px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    color: var(--accent); font-size: 12px; font-weight: 750;
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  .eyebrow::before { content: ""; width: 26px; height: 2px; background: currentColor; border-radius: 2px; }
+  h1, h2, h3 {
+    font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    letter-spacing: -.025em;
+  }
+  h1 { max-width: 950px; margin: 18px 0 18px; font-size: clamp(42px, 7vw, 76px); line-height: 1.02; font-weight: 650; }
+  .lede { max-width: 790px; margin: 0; color: var(--ink-soft); font-size: clamp(17px, 2vw, 21px); line-height: 1.55; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .hero-meta { margin-top: 26px; color: var(--muted); font-size: 13px; max-width: 820px; }
+  .stat-strip {
+    display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+    margin-top: 28px; margin-bottom: 70px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .stat { padding: 22px 24px; border-right: 1px solid var(--line); }
+  .stat:last-child { border-right: 0; }
+  .stat strong { display: block; font: 650 clamp(28px, 3vw, 40px)/1.05 ui-serif, Georgia, serif; letter-spacing: -.03em; }
+  .stat span { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .stat-note {
+    grid-column: 1 / -1; padding: 13px 24px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 12px; background: #faf7f1;
+  }
+  section { margin-bottom: 74px; }
+  .section-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 25px; }
+  .kicker { color: var(--accent); font-size: 12px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; margin-bottom: 8px; }
+  h2 { margin: 0; font-size: clamp(30px, 4vw, 46px); line-height: 1.08; font-weight: 650; }
+  .section-head p { max-width: 480px; margin: 0; color: var(--muted); font-size: 14px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+  .card {
+    background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 24px; box-shadow: 0 8px 26px rgba(24,33,43,.045);
+  }
+  .card h3 { margin: 0 0 9px; font-size: 21px; line-height: 1.2; }
+  .card p { margin: 0; color: var(--ink-soft); font-size: 14.5px; }
+  .card .tag { margin-bottom: 13px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--accent); background: var(--accent-soft);
+    border: 1px solid rgba(11,107,99,.16); border-radius: 999px;
+    padding: 4px 9px; font-size: 11px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .tag.amber { color: var(--amber); background: var(--amber-soft); border-color: rgba(168,93,8,.18); }
+  .callout {
+    display: grid; grid-template-columns: auto 1fr; gap: 15px; align-items: start;
+    padding: 18px 20px; border-radius: 14px; background: var(--amber-soft);
+    border: 1px solid rgba(168,93,8,.18); color: #6e3f08; font-size: 14px;
+  }
+  .callout strong { display: block; margin-bottom: 3px; color: #5c3406; }
+  .callout .mark { font: 700 14px/1.4 ui-serif, Georgia, serif; color: var(--amber); }
+  .callout.teal { background: var(--accent-soft); border-color: rgba(11,107,99,.17); color: #0b4e48; }
+  .callout.teal .mark, .callout.teal strong { color: var(--accent); }
+  .formula {
+    overflow-x: auto; padding: 28px 26px; border-radius: 16px;
+    background: #1c252e; color: #f4f1ea; border: 1px solid #111820;
+    font-family: "STIX Two Math", "Cambria Math", "Times New Roman", ui-serif, Georgia, serif;
+    font-size: clamp(20px, 2.7vw, 31px); line-height: 1.8; white-space: nowrap;
+    box-shadow: 0 18px 45px rgba(24,33,43,.17);
+  }
+  .formula sub { font-size: .58em; }
+  .formula .op { color: #8bd4c8; padding: 0 .12em; }
+  .formula .q { color: #f0c26a; }
+  .formula .br { color: #8f9aa6; padding: 0 .12em; }
+  .formula .ev { font-weight: 700; padding: 0 .05em; }
+  .formula .ev.s { color: #8ab8ff; }
+  .formula .ev.t { color: #ff9f98; }
+  .formula .ev.c { color: #c9a6ff; }
+  .formula .ev.p { color: #7ee0a9; }
+  .formula .paren { color: #b6c0ca; }
+  .formula-caption { display: flex; flex-wrap: wrap; gap: 9px 18px; margin-top: 14px; color: var(--muted); font-size: 12px; }
+  .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .legend-dot.s { background: var(--blue); }
+  .legend-dot.t { background: var(--red); }
+  .legend-dot.c { background: var(--purple); }
+  .legend-dot.p { background: var(--green); }
+  .formula-wrap { background: transparent; }
+  .side-notes { display: grid; gap: 11px; align-content: start; }
+  .side-note { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; padding: 14px 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); }
+  .side-note .num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; font: 700 12px/1 ui-serif, Georgia, serif; }
+  .side-note b { display: block; font-size: 13.5px; }
+  .side-note span { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .two-col-formula { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(280px,.75fr); gap: 18px; align-items: start; }
+  .two-col-formula > *, .grid-2 > *, .grid-3 > *, .result-grid > * { min-width: 0; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; background: #faf7f1; font-weight: 750; }
+  tr:last-child td { border-bottom: 0; }
+  td code, th code { font-size: 12.5px; background: #f2eee7; padding: 2px 5px; border-radius: 5px; }
+  .mono-note { color: var(--muted); font-size: 12.5px; }
+  .code-block {
+    overflow-x: auto; margin: 0; padding: 20px 22px; border-radius: 14px;
+    background: #1c252e; color: #dbe5ee; font-size: 12.5px; line-height: 1.7;
+    border: 1px solid #111820;
+  }
+  .code-block .c { color: #8b9aaa; }
+  .code-block .k { color: #f0c26a; }
+  .code-block .s { color: #8bd4c8; }
+  .code-block .n { color: #ffb4a9; }
+  .flow { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
+  .flow-step { position: relative; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); min-height: 150px; }
+  .flow-step:not(:last-child)::after {
+    content: "→"; position: absolute; right: -12px; top: 50%; transform: translateY(-50%);
+    color: var(--line-strong); font-weight: 700; z-index: 1;
+  }
+  .flow-step .step-n { color: var(--accent); font: 750 11px/1 inherit; letter-spacing: .12em; text-transform: uppercase; }
+  .flow-step h3 { margin: 10px 0 6px; font-size: 16px; }
+  .flow-step p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  .timeline {
+    --label-w: 38px;
+    border: 1px solid var(--line); border-radius: 15px; background: #fffdf9; padding: 16px 16px 13px;
+  }
+  .tl-axis-row { display: grid; grid-template-columns: var(--label-w) 1fr; gap: 8px; align-items: center; margin-bottom: 9px; }
+  .tl-axis { position: relative; height: 18px; color: var(--muted); font-size: 10.5px; }
+  .tl-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .tl-axis span:first-child { transform: none; }
+  .tl-axis span:last-child { transform: translateX(-100%); }
+  .tl-content { display: grid; grid-template-columns: var(--label-w) 1fr; gap: 8px; }
+  .tl-labels { display: grid; grid-template-rows: repeat(4, 18px); gap: 6px; align-items: center; }
+  .tl-labels span { font: 700 11px/1 "SFMono-Regular", ui-monospace, Menlo, monospace; color: var(--ink-soft); }
+  .tl-chart { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(4, 18px); gap: 6px; width: 100%; min-width: 0; }
+  .tl-track { position: relative; width: 100%; height: 100%; min-width: 0; border-radius: 5px; background: #f2eee7; overflow: hidden; }
+  .tl-bar { position: absolute; top: 0; bottom: 0; border-radius: 5px; min-width: 3px; display: flex; align-items: center; overflow: hidden; }
+  .tl-bar span { color: rgba(255,255,255,.93); font: 650 9.5px/1 "SFMono-Regular", ui-monospace, Menlo, monospace; padding: 0 5px; white-space: nowrap; }
+  .tl-bar.s { background: var(--blue); }
+  .tl-bar.t { background: var(--red); }
+  .tl-bar.c { background: var(--purple); }
+  .tl-bar.p { background: var(--green); }
+  .tl-bar.used { outline: 2px solid #f0c26a; outline-offset: -2px; }
+  .tl-none { position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed #d7d0c5; }
+  .tl-markers { position: absolute; inset: 0; pointer-events: none; }
+  .tl-marker { position: absolute; top: -18px; bottom: 0; border-left: 1px dashed rgba(24,33,43,.35); }
+  .tl-marker span {
+    position: absolute; top: 0; left: 4px; transform: translateY(-100%);
+    background: #fffdf9; border: 1px solid var(--line); border-radius: 5px;
+    color: var(--ink-soft); font: 650 9.5px/1 "SFMono-Regular", ui-monospace, Menlo, monospace;
+    padding: 3px 4px; white-space: nowrap;
+  }
+  .timeline-caption { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; color: var(--muted); font-size: 11.5px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; background: #f2eee7; color: var(--ink-soft); font: 650 11.5px/1.2 "SFMono-Regular", ui-monospace, Menlo, monospace; }
+  .pill.strong { background: var(--accent-soft); color: var(--accent); }
+  .check-table td:last-child { white-space: nowrap; font-weight: 700; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); }
+  .result-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+  .result-card { padding: 20px; border-radius: 15px; border: 1px solid var(--line); background: var(--paper); }
+  .result-card strong { display: block; font: 650 clamp(28px, 3.4vw, 42px)/1 ui-serif, Georgia, serif; letter-spacing: -.03em; }
+  .result-card span { display: block; margin-top: 8px; color: var(--muted); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+  .result-card.accent { background: var(--accent-soft); border-color: rgba(11,107,99,.18); }
+  .result-card.accent strong { color: var(--accent); }
+  .steps { display: grid; gap: 12px; counter-reset: step; }
+  .step { display: grid; grid-template-columns: 38px 1fr; gap: 14px; padding: 16px 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: #fff; font: 700 13px/1 ui-serif, Georgia, serif;
+  }
+  .step h3 { margin: 0 0 3px; font-size: 16px; }
+  .step p { margin: 0; color: var(--muted); font-size: 13px; }
+  .step code { font-size: 12.5px; background: #f2eee7; padding: 2px 5px; border-radius: 5px; }
+  .footer { border-top: 1px solid var(--line); padding: 34px 0 46px; color: var(--muted); font-size: 12.5px; }
+  .footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; }
+  .footer a { color: var(--ink-soft); }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* ---------- Nordic design system ---------- */
+  :root {
+    --bg: #f2f4f5;
+    --paper: #fbfcfc;
+    --paper-2: #edf1f2;
+    --ink: #172126;
+    --ink-soft: #3e4b52;
+    --muted: #718089;
+    --line: #dce3e5;
+    --line-strong: #c6d0d4;
+    --accent: #3f6575;
+    --accent-soft: #e7eef1;
+    --amber: #3f6575;
+    --amber-soft: #eef2f3;
+    --blue: #45647b;
+    --blue-soft: #e7eef1;
+    --red: #7c5b57;
+    --red-soft: #f4eeed;
+    --purple: #65617c;
+    --purple-soft: #efedf2;
+    --green: #4a6d5e;
+    --green-soft: #edf3ef;
+    --shadow: none;
+    --radius: 3px;
+    --sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  }
+  body {
+    background: var(--bg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  a:hover { color: var(--accent); }
+  .skip { border-radius: 2px; }
+  .topbar { background: rgba(242,244,245,.94); border-bottom: 1px solid var(--line); backdrop-filter: blur(8px); }
+  .topbar-inner { min-height: 60px; gap: 22px; }
+  .brand-mark {
+    width: 28px; height: 28px; border-radius: 2px; box-shadow: none;
+    background: var(--ink); color: var(--paper); font: 500 14px/1 var(--mono);
+  }
+  .brand b { font-size: 13px; font-weight: 600; letter-spacing: .01em; }
+  .brand small { font: 500 9.5px/1.5 var(--mono); letter-spacing: .1em; }
+  .topnav a { color: var(--muted); font: 500 12px/1.2 var(--sans); }
+  .btn {
+    border-radius: 2px; padding: 9px 14px; font: 600 12px/1.2 var(--sans);
+    box-shadow: none; transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn:hover { transform: none; }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: none; }
+  .btn-primary:hover { color: #fff; background: var(--accent-dark, #2f4f5c); }
+  .btn-ghost { border-color: var(--line-strong); }
+  .btn-ghost:hover { background: var(--paper); }
+  .btn-small { padding: 7px 11px; font-size: 11.5px; }
+  .hero { padding: 78px 0 30px; }
+  .eyebrow { gap: 0; color: var(--muted); font: 500 10px/1.4 var(--mono); letter-spacing: .14em; }
+  .eyebrow::before { display: none; }
+  h1, h2, h3 { font-family: var(--sans); font-weight: 500; }
+  h1 { max-width: 900px; margin: 18px 0 20px; font-size: clamp(44px, 6.4vw, 68px); line-height: 1; letter-spacing: -.045em; }
+  .lede { max-width: 680px; color: var(--ink-soft); font-size: clamp(16px, 1.8vw, 18px); line-height: 1.6; }
+  .hero-actions { gap: 8px; margin-top: 26px; }
+  .hero-meta { margin-top: 22px; color: var(--muted); font: 500 10.5px/1.6 var(--mono); }
+  .stat-strip {
+    margin-top: 34px; margin-bottom: 80px;
+    background: transparent; border: 0; border-top: 1px solid var(--line-strong);
+    border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none;
+  }
+  .stat { padding: 18px 20px 18px 0; border-right: 1px solid var(--line); }
+  .stat:nth-child(1) { padding-left: 0; }
+  .stat strong { font: 500 clamp(28px, 3vw, 36px)/1.05 var(--sans); letter-spacing: -.04em; }
+  .stat span { margin-top: 7px; color: var(--muted); font: 500 9px/1.4 var(--mono); letter-spacing: .09em; }
+  .stat-note { padding: 12px 0; border-top: 1px solid var(--line); background: transparent; color: var(--muted); font: 500 10.5px/1.5 var(--mono); }
+  section { margin-bottom: 84px; }
+  .section-head { gap: 24px; margin-bottom: 22px; }
+  .kicker { color: var(--muted); font: 500 9.5px/1.5 var(--mono); letter-spacing: .13em; margin-bottom: 7px; }
+  h2 { font-size: clamp(28px, 3.4vw, 36px); line-height: 1.1; letter-spacing: -.035em; }
+  .section-head p { max-width: 620px; color: var(--muted); font-size: 13.5px; }
+  .grid-2, .grid-3 { gap: 12px; }
+  .card {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 3px;
+    padding: 22px; box-shadow: none;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 19px; font-weight: 500; letter-spacing: -.02em; }
+  .card p { color: var(--ink-soft); font-size: 14px; }
+  .tag {
+    margin-bottom: 10px; padding: 0; border: 0; border-radius: 0;
+    background: transparent; color: var(--muted);
+    font: 500 9.5px/1.4 var(--mono); letter-spacing: .12em;
+  }
+  .tag.amber { background: transparent; border-color: transparent; color: var(--accent); }
+  .callout {
+    gap: 14px; padding: 16px 18px; border-radius: 2px;
+    background: var(--paper-2); border: 1px solid var(--line);
+    color: var(--ink-soft); font-size: 13.5px;
+  }
+  .callout strong { margin-bottom: 2px; color: var(--ink); font-weight: 600; }
+  .callout .mark { color: var(--accent); font: 500 13px/1.4 var(--mono); }
+  .callout.teal { background: var(--accent-soft); border-color: var(--line-strong); color: var(--ink-soft); }
+  .callout.teal .mark, .callout.teal strong { color: var(--accent); }
+  .formula {
+    padding: 26px 24px; border-radius: 2px;
+    background: #202a2f; color: #d5e0e4; border-color: #202a2f;
+    font-family: "STIX Two Math", "Cambria Math", "Times New Roman", ui-serif, Georgia, serif;
+    font-size: clamp(19px, 2.5vw, 28px); line-height: 1.8; box-shadow: none;
+  }
+  .formula .op { color: #9fc2cf; }
+  .formula .q { color: #b9c7cc; }
+  .formula .br { color: #7e8f97; }
+  .formula .ev.s { color: #8fb3c0; }
+  .formula .ev.t { color: #c39a95; }
+  .formula .ev.c { color: #a8a0c0; }
+  .formula .ev.p { color: #93b7a7; }
+  .formula .paren { color: #b6c3c8; }
+  .formula-caption { margin-top: 12px; color: var(--muted); font: 500 10.5px/1.6 var(--mono); }
+  .formula.pges-formula { margin-top: 14px; font-size: clamp(16px, 1.45vw, 19px); }
+  .legend-dot { width: 6px; height: 6px; margin-right: 5px; }
+  .side-notes { gap: 8px; }
+  .side-note {
+    grid-template-columns: 30px 1fr; gap: 10px; padding: 13px 14px;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--paper);
+  }
+  .side-note .num {
+    width: auto; height: auto; border-radius: 0; background: transparent;
+    color: var(--accent); font: 500 10px/1.4 var(--mono); place-items: start; padding-top: 2px;
+  }
+  .side-note b { font-size: 13px; font-weight: 600; }
+  .side-note span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .two-col-formula { gap: 12px; }
+  .table-wrap { border-radius: 2px; background: var(--paper); }
+  table { font-size: 12px; }
+  th, td { padding: 9px 11px; }
+  th { background: var(--bg); font: 500 9px/1.4 var(--mono); letter-spacing: .08em; }
+  td code, th code { border-radius: 2px; background: var(--paper-2); font-size: 11px; }
+  .mono-note { color: var(--muted); font: 500 10.5px/1.6 var(--mono); }
+  .code-block {
+    padding: 18px 20px; border-radius: 2px; border-color: #202a2f;
+    background: #202a2f; color: #d5e0e4; font-size: 11.5px; line-height: 1.7;
+  }
+  .code-block .c { color: #7e8f97; }
+  .code-block .k { color: #b9c7cc; }
+  .code-block .s { color: #9fc2cf; }
+  .code-block .n { color: #c39a95; }
+  .flow { gap: 8px; }
+  .flow-step { padding: 16px; border-radius: 2px; min-height: 146px; }
+  .flow-step:not(:last-child)::after { right: -10px; color: var(--line-strong); font-weight: 500; }
+  .flow-step .step-n { color: var(--accent); font: 500 9.5px/1.4 var(--mono); letter-spacing: .1em; }
+  .flow-step h3 { margin: 8px 0 5px; font-size: 15px; font-weight: 500; }
+  .flow-step p { font-size: 12px; line-height: 1.5; }
+  .timeline { border-radius: 2px; background: var(--paper); padding: 14px; }
+  .tl-track { border-radius: 2px; background: var(--paper-2); }
+  .tl-bar { border-radius: 2px; }
+  .tl-bar.used { outline: 1px solid var(--accent); outline-offset: -1px; }
+  .tl-marker { border-left-color: rgba(62,75,82,.32); }
+  .tl-marker span { background: var(--paper); border-radius: 2px; font: 500 9px/1.2 var(--mono); }
+  .tl-marker:last-child span { left: auto; right: 4px; }
+  .timeline-caption { color: var(--muted); font: 500 9.5px/1.5 var(--mono); }
+  .pill { padding: 5px 9px; border-radius: 2px; background: var(--paper-2); font: 500 10.5px/1.2 var(--mono); }
+  .pill.strong { background: var(--accent-soft); color: var(--accent); }
+  .result-grid { gap: 8px; }
+  .result-card { padding: 18px; border-radius: 2px; background: var(--paper); }
+  .result-card strong { font: 500 clamp(26px, 3.2vw, 36px)/1 var(--sans); letter-spacing: -.04em; }
+  .result-card span { margin-top: 7px; color: var(--muted); font: 500 9px/1.4 var(--mono); letter-spacing: .09em; }
+  .result-card.accent { background: var(--accent-soft); border-color: var(--line-strong); }
+  .result-card.accent strong { color: var(--accent); }
+  .steps { gap: 8px; }
+  .step { grid-template-columns: 34px 1fr; gap: 12px; padding: 14px 16px; border-radius: 2px; }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    display: block; width: auto; height: auto; border-radius: 0; background: transparent;
+    color: var(--accent); font: 500 10px/1.4 var(--mono); padding-top: 3px;
+  }
+  .step h3 { margin: 0 0 3px; font-size: 15px; font-weight: 500; }
+  .step p { color: var(--muted); font-size: 12.5px; }
+  .step code { background: var(--paper-2); border-radius: 2px; font-size: 11.5px; }
+  .footer { padding: 24px 0 40px; font-size: 11px; }
+  .footer a { color: var(--ink-soft); text-decoration: none; }
+
+  @media (max-width: 980px) {
+    .topnav { display: none; }
+    .two-col-formula, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr 1fr; }
+    .flow-step:nth-child(2n)::after { display: none; }
+    .stat-strip { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .stat:nth-child(2) { border-right: 0; }
+    .stat:nth-child(3), .stat:nth-child(4) { border-top: 1px solid var(--line); }
+    .result-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+  @media (max-width: 620px) {
+    .wrap { width: min(var(--max), calc(100% - 26px)); }
+    .hero { padding-top: 48px; }
+    .stat-strip { grid-template-columns: 1fr; }
+    .stat { border-right: 0; }
+    .stat + .stat { border-top: 1px solid var(--line); }
+    .flow { grid-template-columns: 1fr; }
+    .flow-step::after { display: none; }
+    .section-head { display: block; }
+    .section-head p { margin-top: 10px; }
+    .result-grid { grid-template-columns: 1fr; }
+    .formula { padding: 22px 18px; }
+  }
+
+  @media (max-width: 620px) {
+    .formula { white-space: normal; }
+    .formula.pges-formula { overflow-x: visible; font-size: 16px; line-height: 1.85; }
+    .tl-marker span { display: none; }
+  }
+  @media print {
+    .topbar, .hero-actions, .footer { display: none; }
+    body { background: white; }
+    .card, .stat-strip, .formula, .timeline { box-shadow: none; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="qel-reproducibility.html" aria-label="QEL BEST reproducibility guide home">
+      <span class="brand-mark">Q</span>
+      <span><b>QEL / BEST</b><small>Reproducibility guide</small></span>
+    </a>
+    <nav class="topnav" aria-label="Section navigation">
+      <a href="#best">BEST</a>
+      <a href="#qel">QEL</a>
+      <a href="#cohort">Cohort</a>
+      <a href="#pges">PGES case</a>
+      <a href="qel-algorithm.html">Algorithm</a>
+    </nav>
+    <a class="btn btn-primary btn-small" href="qel-playground.html">Open playground →</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap">
+    <div class="eyebrow">Reproducibility artifact · rational ensemble logic</div>
+    <h1>From annotated timelines to a PGES cohort</h1>
+    <p class="lede">
+      This page reconstructs the path described in the QEL paper: represent a recording as a
+      <strong>BEST</strong>, build a temporal phenotype as a <strong>QEL</strong> formula,
+      evaluate it record by record, and audit the evidence for every patient in the cohort.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="qel-playground.html">Run the interactive demo</a>
+      <a class="btn btn-ghost" href="#pges">Jump to the PGES audit</a>
+      <a class="btn btn-ghost" href="qel-algorithm.html">Trace the algorithm</a>
+    </div>
+    <p class="hero-meta">
+      Companion to <em>QEL: Rational Ensemble Logic for Model-Checking-Based Cohort Discovery with
+      Real-World Electrophysiology Data</em> (Zhang, Hao, Huang, Li, Cui). Built from the paper and the
+      existing <code>telii-rocket</code> query functions.
+    </p>
+  </section>
+
+  <div class="wrap stat-strip" aria-label="Paper-reported PGES run">
+    <div class="stat"><strong>1,976</strong><span>clinical records</span></div>
+    <div class="stat"><strong>37</strong><span>qualifying patients</span></div>
+    <div class="stat"><strong>45</strong><span>matched annotation patterns</span></div>
+    <div class="stat"><strong>15.97 s</strong><span>reported evaluation time</span></div>
+    <div class="stat-note">
+      Paper-reported illustrative feasibility run (Figure 3). The paper explicitly treats these values as an
+      end-to-end workflow result, not a systems benchmark.
+    </div>
+  </div>
+
+  <section class="wrap" aria-labelledby="contract-title">
+    <div class="section-head">
+      <div>
+        <div class="kicker">The reproduction contract</div>
+        <h2 id="contract-title">What is fixed, and what runs here</h2>
+      </div>
+      <p>The static artifact separates the logical contract from the clinical database and from implementation speed.</p>
+    </div>
+    <div class="grid-3">
+      <article class="card">
+        <span class="tag">Fixed by the paper</span>
+        <h3>Syntax, BEST semantics, and the PGES formula</h3>
+        <p>The interval-ensemble operations, the half-open future windows, the finite-evidence theorem, and the exact PGES specification are reproduced conceptually and operationally.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Executable here</span>
+        <h3>Ten-record synthetic BEST + browser model checker</h3>
+        <p>The companion playground embeds a small static BEST dataset and evaluates the same QEL formulas with endpoint arithmetic and finite boundary-derived witnesses.</p>
+      </article>
+      <article class="card">
+        <span class="tag amber">Not shipped</span>
+        <h3>The 1,976-patient clinical database</h3>
+        <p>Protected clinical annotations and patient identifiers are not part of this static artifact. The 37 / 45 / 15.97 s result is reproduced from the paper, not recomputed from the raw clinical data here.</p>
+      </article>
+    </div>
+    <div class="callout teal" style="margin-top:18px">
+      <span class="mark">i</span>
+      <div>
+        <strong>Reading guide</strong>
+        Sections 1–3 define the representation and the query semantics. Section 4 works through the PGES
+        cohort query and its reported result. The playground is the executable companion for the same
+        interval operations.
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="best" aria-labelledby="best-title">
+    <div class="section-head">
+      <div>
+        <div class="kicker">1 · Representation</div>
+        <h2 id="best-title">BEST: one record, one interval-ensemble function</h2>
+      </div>
+      <p>A BEST turns time-stamped clinical annotations into a finite semantic object that QEL can check.</p>
+    </div>
+
+    <div class="grid-3">
+      <article class="card">
+        <span class="tag">Interval</span>
+        <h3>An interval on ℚ</h3>
+        <p>An interval is a set of rational time points between two endpoints. Endpoints may be open or closed; a singleton is a closed interval [q, q].</p>
+        <p class="mono-note" style="margin-top:12px"><code>[(s, t)] = { q ∈ ℚ | s ⪯ q ≪ t }</code></p>
+      </article>
+      <article class="card">
+        <span class="tag">Interval ensemble</span>
+        <h3>A finite, non-overlapping set</h3>
+        <p>An interval ensemble δ is a finite set of non-overlapping intervals. It may be empty, and it may contain several disjoint episodes of the same clinical event.</p>
+        <p class="mono-note" style="margin-top:12px"><code>δ = { [10, 70], [120, 160] }</code></p>
+      </article>
+      <article class="card">
+        <span class="tag">BEST</span>
+        <h3>A label-to-ensemble function</h3>
+        <p>A BEST ε maps every atomic label p to an interval ensemble ε(p). Labels that map to the empty ensemble are omitted from the graph.</p>
+        <p class="mono-note" style="margin-top:12px"><code>ε : P → IE</code></p>
+      </article>
+    </div>
+
+    <div class="two-col-formula" style="margin-top:18px">
+      <div>
+        <div class="timeline" aria-label="Illustrative BEST timeline for record P01">
+          <div class="tl-axis-row">
+            <span></span>
+            <div class="tl-axis" aria-hidden="true">
+              <span style="left:0%">0</span>
+              <span style="left:25%">30</span>
+              <span style="left:50%">60</span>
+              <span style="left:75%">90</span>
+              <span style="left:100%">120 s</span>
+            </div>
+          </div>
+          <div class="tl-content">
+            <div class="tl-labels" aria-hidden="true"><span>S</span><span>T</span><span>C</span><span>P</span></div>
+            <div class="tl-chart">
+              <div class="tl-track"><div class="tl-bar s" style="left:8.333%;width:50%"><span>S 10–70</span></div></div>
+              <div class="tl-track"><div class="tl-bar t" style="left:8.333%;width:16.667%"><span>T 10–30</span></div></div>
+              <div class="tl-track"><div class="tl-bar c" style="left:26.667%;width:30%"><span>C 32–68</span></div></div>
+              <div class="tl-track"><div class="tl-bar p" style="left:58.333%;width:37.5%"><span>P 70–115</span></div></div>
+              <div class="tl-markers" aria-hidden="true">
+                <div class="tl-marker" style="left:8.333%"><span>x</span></div>
+                <div class="tl-marker" style="left:26.667%"><span>x+a</span></div>
+                <div class="tl-marker" style="left:58.333%"><span>x+a+b</span></div>
+                <div class="tl-marker" style="left:95.833%"><span>+c</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-caption"><span>Illustrative record P01, used again in the playground</span><span>closed annotation intervals · seconds</span></div>
+        </div>
+      </div>
+      <aside>
+        <div class="side-notes">
+          <div class="side-note">
+            <span class="num">1</span>
+            <div><b>Atomic labels</b><span>S = overall seizure, T = tonic phase, C = clonic phase, P = EEG suppression.</span></div>
+          </div>
+          <div class="side-note">
+            <span class="num">2</span>
+            <div><b>Multiple episodes are allowed</b><span>An ensemble can hold several intervals, so a patient may have more than one matched pattern.</span></div>
+          </div>
+          <div class="side-note">
+            <span class="num">3</span>
+            <div><b>Endpoint arithmetic stays exact</b><span>Displacement, dilation, erosion, complement, union, and intersection all operate on interval endpoints.</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Example graph</span>
+        <h3>The record as a partial function</h3>
+        <p>For the record above, the non-empty entries of ε are:</p>
+        <div class="table-wrap" style="margin-top:14px">
+          <table>
+            <thead><tr><th>Label</th><th>Interval ensemble ε(p)</th><th>Clinical reading</th></tr></thead>
+            <tbody>
+              <tr><td><code>S</code></td><td><code>{ [10, 70] }</code></td><td>seizure episode</td></tr>
+              <tr><td><code>T</code></td><td><code>{ [10, 30] }</code></td><td>tonic phase</td></tr>
+              <tr><td><code>C</code></td><td><code>{ [32, 68] }</code></td><td>clonic phase</td></tr>
+              <tr><td><code>P</code></td><td><code>{ [70, 115] }</code></td><td>EEG suppression</td></tr>
+              <tr><td><code>any other p</code></td><td><code>∅</code></td><td>omitted from the stored graph</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+      <article class="card">
+        <span class="tag">Storage</span>
+        <h3>Boundary arrays and closure marks</h3>
+        <p>The paper represents a canonical interval ensemble by two parallel arrays. For example, the ensemble δ₂ = {(1,2), [3,4), [41/10, 26/5], {13/2}} is stored as:</p>
+        <pre class="code-block" style="margin-top:14px"><span class="c"># boundary time points</span>
+boundary     = [1, 2, 3, 4, 41/10, 26/5, 13/2, 13/2]
+<span class="c"># 0 = open, 1 = closed</span>
+closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
+        <p style="margin-top:13px">Every primitive operation is a pass over these arrays followed by normalization: remove empty intervals and merge overlapping or adjacent compatible intervals.</p>
+      </article>
+    </div>
+
+    <div class="callout" style="margin-top:18px">
+      <span class="mark">!</span>
+      <div>
+        <strong>Why this representation matters for reproducibility</strong>
+        The semantics never depends on a particular database schema. Once annotations are expressed as
+        interval ensembles, the same QEL formula can be checked by the backend, by a notebook, or by the
+        static browser demo on this site.
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="qel" aria-labelledby="qel-title">
+    <div class="section-head">
+      <div>
+        <div class="kicker">2 · Query construction</div>
+        <h2 id="qel-title">QEL: write the phenotype as a formula</h2>
+      </div>
+      <p>QEL keeps a small operator vocabulary: displacement, bounded existence, bounded universality, Boolean connectives, and first-order quantification over rational time.</p>
+    </div>
+
+    <div class="grid-2">
+      <article class="card">
+        <span class="tag">Syntax</span>
+        <h3>The full language</h3>
+        <pre class="code-block" style="margin-top:12px">φ, ψ ::= p
+        | ¬φ
+        | φ ∧ ψ
+        | φ<sub>u</sub>              <span class="c">// displacement</span>
+        | ◊<sub>t</sub> φ            <span class="c">// bounded existence</span>
+        | □<sub>t</sub> φ            <span class="c">// bounded universality</span>
+        | ∃x φ  |  ∀x φ      <span class="c">// point variables</span></pre>
+        <p style="margin-top:12px">Here p is an atomic label, u is a point term, and t is a positive norm term. In this paper the index domain is ℚ and the future direction is used.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Semantics</span>
+        <h3>Truth at a rational point r</h3>
+        <div class="table-wrap" style="margin-top:12px">
+          <table>
+            <thead><tr><th>Formula</th><th>Truth condition</th></tr></thead>
+            <tbody>
+              <tr><td><code>r ⊨ p</code></td><td>r lies in the support of label p</td></tr>
+              <tr><td><code>r ⊨ φ<sub>u</sub></code></td><td><code>(r + u) ⊨ φ</code></td></tr>
+              <tr><td><code>r ⊨ ◊<sub>t</sub> φ</code></td><td>some <code>s ∈ [r, r+t)</code> satisfies φ</td></tr>
+              <tr><td><code>r ⊨ □<sub>t</sub> φ</code></td><td>every <code>s ∈ [r, r+t)</code> satisfies φ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px">The window is half-open. This is why dilation opens the new left boundary and erosion closes the new right boundary.</p>
+      </article>
+    </div>
+
+    <div class="two-col-formula" style="margin-top:18px">
+      <div>
+        <div class="formula" aria-label="The PGES QEL formula">
+          <span class="q">∃x ∃a ∃b ∃c</span>
+          <span class="br">[</span>
+          <span class="op">□</span><sub>a+b</sub><span class="ev s">S</span>
+          <span class="op">∧</span>
+          <span class="op">◊</span><sub>a</sub><span class="ev t">T</span>
+          <span class="op">∧</span>
+          <span class="paren">(</span><span class="op">◊</span><sub>b</sub><span class="ev c">C</span><span class="paren">)</span><sub>a</sub>
+          <span class="op">∧</span>
+          <span class="paren">(</span><span class="op">□</span><sub>c</sub><span class="ev p">P</span><span class="paren">)</span><sub>a+b</sub>
+          <span class="br">]</span><span class="q">x</span>
+        </div>
+        <div class="formula-caption">
+          <span><i class="legend-dot s"></i>S seizure</span>
+          <span><i class="legend-dot t"></i>T tonic</span>
+          <span><i class="legend-dot c"></i>C clonic</span>
+          <span><i class="legend-dot p"></i>P EEG suppression</span>
+          <span>ψ<sub>PGES</sub></span>
+        </div>
+      </div>
+      <aside class="side-notes">
+        <div class="side-note">
+          <span class="num">1</span>
+          <div><b><code>□<sub>a+b</sub>S</code></b><span>The seizure phase holds continuously for a + b time units from the anchor x.</span></div>
+        </div>
+        <div class="side-note">
+          <span class="num">2</span>
+          <div><b><code>◊<sub>a</sub>T</code></b><span>A tonic phase occurs somewhere in the first a time units.</span></div>
+        </div>
+        <div class="side-note">
+          <span class="num">3</span>
+          <div><b><code>(◊<sub>b</sub>C)<sub>a</sub></code></b><span>After displacement by a, a clonic phase occurs somewhere in the next b time units.</span></div>
+        </div>
+        <div class="side-note">
+          <span class="num">4</span>
+          <div><b><code>(□<sub>c</sub>P)<sub>a+b</sub></code></b><span>At the displaced offset a + b, suppression persists continuously for c time units.</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="grid-3" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Displacement</span>
+        <h3>“Immediately after”</h3>
+        <p><code>φ<sub>u</sub></code> moves the evaluation point by u. The PGES conjunct <code>(□<sub>c</sub>P)<sub>a+b</sub></code> is the mechanism that anchors suppression to the end of the chosen seizure block.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Bounded existence</span>
+        <h3>“Somewhere within”</h3>
+        <p><code>◊<sub>t</sub>φ</code> says that φ occurs at least once in the next t time units. It is implemented as future-window dilation of the support of φ.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Bounded universality</span>
+        <h3>“Throughout”</h3>
+        <p><code>□<sub>t</sub>φ</code> says that φ holds at every point in the next t time units. It is implemented as future-window erosion of the support of φ.</p>
+      </article>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Build recipe</span>
+        <h3>How to turn a clinical sentence into QEL</h3>
+        <div class="steps" style="margin-top:14px">
+          <div class="step"><div><h3>Choose the event labels</h3><p>Name the annotated events that carry the phenotype, e.g. <code>S</code>, <code>T</code>, <code>C</code>, <code>P</code>.</p></div></div>
+          <div class="step"><div><h3>Write persistence with □</h3><p>“S lasts for a + b” becomes <code>□<sub>a+b</sub>S</code>.</p></div></div>
+          <div class="step"><div><h3>Write bounded occurrence with ◊</h3><p>“T occurs within the first a” becomes <code>◊<sub>a</sub>T</code>.</p></div></div>
+          <div class="step"><div><h3>Anchor the next phase with displacement</h3><p>“After a, C occurs within b” becomes <code>(◊<sub>b</sub>C)<sub>a</sub></code>.</p></div></div>
+          <div class="step"><div><h3>Quantify the anchors and durations</h3><p>Close the formula with <code>∃x ∃a ∃b ∃c</code>. The cohort is the set of records for which a witness exists.</p></div></div>
+        </div>
+      </article>
+      <article class="card">
+        <span class="tag">Support algebra</span>
+        <h3>From formula structure to interval operations</h3>
+        <p>For a fixed BEST ε and assignment to free variables, the support [[φ]]<sub>ε</sub> is again an interval ensemble. The recursive rules are:</p>
+        <div class="table-wrap" style="margin-top:14px">
+          <table>
+            <thead><tr><th>Formula</th><th>Support operation</th></tr></thead>
+            <tbody>
+              <tr><td>atomic p</td><td>ε(p)</td></tr>
+              <tr><td><code>φ<sub>u</sub></code></td><td>displacement by u</td></tr>
+              <tr><td><code>◊<sub>t</sub>φ</code></td><td>dilation by t</td></tr>
+              <tr><td><code>□<sub>t</sub>φ</code></td><td>erosion by t</td></tr>
+              <tr><td><code>φ ∧ ψ</code></td><td>intersection</td></tr>
+              <tr><td><code>φ ∨ ψ</code></td><td>union</td></tr>
+              <tr><td><code>¬φ</code></td><td>complement</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px">A record satisfies a quantifier-free formula at q exactly when q belongs to its support.</p>
+      </article>
+    </div>
+
+    <div class="callout teal" style="margin-top:18px">
+      <span class="mark">↳</span>
+      <div>
+        <strong>Why the PGES formula has four quantifiers</strong>
+        <code>x</code> chooses the seizure anchor, <code>a</code> chooses how much of the seizure is the tonic window,
+        <code>b</code> chooses the remaining clonic window, and <code>c</code> chooses the suppression duration.
+        The logical statement is existential: a patient is included if at least one consistent choice exists.
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="cohort" aria-labelledby="cohort-title">
+    <div class="section-head">
+      <div>
+        <div class="kicker">3 · Database to cohort</div>
+        <h2 id="cohort-title">Evaluate the formula record by record</h2>
+      </div>
+      <p>The cohort is defined by logical satisfaction, not by a hand-written procedural heuristic.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:18px">
+      <span class="tag">Definition</span>
+      <h3>The PGES cohort</h3>
+      <div class="formula" style="margin-top:14px; font-size: clamp(19px, 2.4vw, 27px)">
+        [[ψ]]<sub>D</sub> = { ε | (ε, q) ⊨ ψ, ε ∈ D }
+      </div>
+      <p style="margin-top:14px">
+        D is the database of BEST records. The formula is checked independently for each record ε.
+        In the PGES search, the existential block ranges over seizure anchors and duration variables;
+        a record is included if some witness satisfies the whole body.
+      </p>
+    </div>
+
+    <div class="flow" aria-label="Cohort query pipeline">
+      <div class="flow-step"><div class="step-n">Step 01</div><h3>Load annotations</h3><p>Convert a recording session into a BEST: one interval ensemble per clinical label.</p></div>
+      <div class="flow-step"><div class="step-n">Step 02</div><h3>Compile the formula</h3><p>Translate displacement, ◊, □, and Boolean operators into interval transformations.</p></div>
+      <div class="flow-step"><div class="step-n">Step 03</div><h3>Evaluate supports</h3><p>Compute the interval ensemble for the quantifier-free body under a candidate assignment.</p></div>
+      <div class="flow-step"><div class="step-n">Step 04</div><h3>Find finite witnesses</h3><p>Use endpoints, constants, and boundary-derived representatives instead of searching dense ℚ.</p></div>
+      <div class="flow-step"><div class="step-n">Step 05</div><h3>Project the cohort</h3><p>Include the record if a witness makes the body true; aggregate patients and matched patterns.</p></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Finite evidence</span>
+        <h3>Why dense time does not require dense search</h3>
+        <p>The paper proves that, after fixing a BEST, a reference point, and a QEL formula, the satisfying assignments of the free rational variables form a finite union of polyhedral cells. The truth value is constant on each cell and on each bounding face.</p>
+        <p style="margin-top:12px">Therefore a finite test set F can be chosen from the arrangement induced by the formula's linear inequalities. For one variable this reduces to endpoints, rational midpoints between consecutive endpoints, and two exterior samples.</p>
+        <div class="pill-row" style="margin-top:14px">
+          <span class="pill">endpoints of ε</span>
+          <span class="pill">rational constants in ψ</span>
+          <span class="pill">reference point q</span>
+          <span class="pill strong">one witness per cell</span>
+        </div>
+      </article>
+      <article class="card">
+        <span class="tag">Complexity</span>
+        <h3>Record-local endpoint-array model checking</h3>
+        <p>Let N be the total number of interval boundaries in a record and let |ψ| be the syntax-tree size. For a formula whose finite-evidence enumeration uses at most k free rational variables in any quantified block, the paper gives the bound:</p>
+        <div class="formula" style="margin-top:14px; font-size: clamp(22px, 2.5vw, 30px)">
+          O(|ψ| · N<sup>k+1</sup>)
+        </div>
+        <p style="margin-top:12px">For every fixed formula the data complexity is polynomial. The PGES formula has a small, fixed number of quantifiers, so the expensive part in practice is the number of interval boundaries and the number of matching patterns.</p>
+      </article>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Backend mapping</span>
+        <h3>Where the existing query functions fit</h3>
+        <p>The Rust backend implements the same support algebra as MongoDB aggregation stages. The key mapping is:</p>
+        <div class="table-wrap" style="margin-top:14px">
+          <table>
+            <thead><tr><th>Concept</th><th>Backend location</th></tr></thead>
+            <tbody>
+              <tr><td>Atomic label support</td><td><code>construct_query</code> · <code>eeg_query_api.rs:210</code></td></tr>
+              <tr><td>□<sub>t</sub> condition</td><td><code>box_t_phi</code>, <code>box_t_neg_phi</code>, <code>box_phi_t</code>, <code>box_neg_phi_t</code> · <code>eeg_query_api.rs:296–370</code></td></tr>
+              <tr><td>◊<sub>t</sub> condition</td><td><code>diamond_t_phi</code>, <code>diamond_t_neg_phi</code>, <code>diamond_phi_t</code>, <code>diamond_neg_phi_t</code> · <code>eeg_query_api.rs:372–445</code></td></tr>
+              <tr><td>Conjunction of conditions</td><td><code>construct_tel_cond</code> · <code>eeg_query_api.rs:266</code></td></tr>
+              <tr><td>Binary Allen relations</td><td><code>eeg_allen_query</code> · <code>eeg_query_api.rs:75</code></td></tr>
+              <tr><td>Precomputed binary cohort index</td><td><code>rtq_telii</code> · <code>query_api.rs:88</code></td></tr>
+              <tr><td>Timeline collection</td><td><code>EegMongoRepo</code> · <code>mongodb.rs:90</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px">`eeg_allen_query` exposes named relations such as <code>before</code>, <code>contain</code>, <code>overlap</code>, and <code>meet</code> by expanding each relation into a conjunction of box and diamond conditions. PGES is not a single Allen relation; it is a compound pattern built from the same primitives.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Aggregation outline</span>
+        <h3>How the backend compiles a temporal condition</h3>
+        <pre class="code-block" style="margin-top:14px"><span class="c">// eeg_query_api.rs — construct_query</span>
+<span class="k">$match</span>   { e: { <span class="s">$in</span>: event_ids } }
+<span class="k">$project</span> { subjectid, e, times }
+<span class="k">$unwind</span>  <span class="s">"$times"</span>
+<span class="k">$group</span>   { _id: <span class="s">"$subjectid"</span>, ... }
+<span class="k">$project</span> { e1: { <span class="s">$setDifference</span>: [...] }, ... }
+<span class="k">$match</span>   { <span class="s">$expr</span>: { <span class="s">$and</span>: [...] } }
+<span class="k">$unwind</span>  <span class="s">"$e1"</span>; <span class="k">$unwind</span> <span class="s">"$e2"</span>
+<span class="k">$project</span> { min_e1, max_e1, min_e2, max_e2, ... }
+<span class="k">$addFields</span> { tel_cond: ... }
+<span class="k">$match</span>   { tel_cond: <span class="s">true</span> }
+<span class="k">$group</span>   { _id: { subjectid, ... } }</pre>
+        <p style="margin-top:12px">The pipeline first groups annotation timestamps by patient and event, then compiles the temporal condition into <code>tel_cond</code>, and finally keeps the patients for which the condition evaluates to true.</p>
+      </article>
+    </div>
+
+    <div class="callout" style="margin-top:18px">
+      <span class="mark">!</span>
+      <div>
+        <strong>Index path versus model-checking path</strong>
+        Binary relative-temporal queries can use the precomputed <code>telii</code> index in <code>query_api.rs</code>.
+        The PGES case exercises the richer timeline path: extract per-patient event arrays, build min/max
+        boundaries, evaluate the compound support condition, and return subject-level matches. The static
+        playground mirrors the second path in the browser.
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" id="pges" aria-labelledby="pges-title">
+    <div class="section-head">
+      <div>
+        <div class="kicker">4 · PGES cohort query</div>
+        <h2 id="pges-title">The paper's PGES run, audited</h2>
+      </div>
+      <p>Generalized EEG suppression: a GTC seizure followed by continuous suppression immediately after seizure offset.</p>
+    </div>
+
+    <div class="grid-2">
+      <article class="card">
+        <span class="tag">Clinical specification</span>
+        <h3>What PGES adds to GTC</h3>
+        <p>A generalized tonic–clonic seizure is specified by a continuous seizure block <code>S</code>, a tonic phase <code>T</code> in its first part, and a clonic phase <code>C</code> after displacement by <code>a</code>. PGES adds one conjunct: after the seizure offset, suppression <code>P</code> must persist for <code>c</code>.</p>
+        <div class="formula pges-formula">
+          ψ<sub>PGES</sub> = ∃x∃a∃b∃c [ □<sub>a+b</sub>S ∧ ◊<sub>a</sub>T ∧ (◊<sub>b</sub>C)<sub>a</sub> ∧ (□<sub>c</sub>P)<sub>a+b</sub> ] x
+        </div>
+        <p style="margin-top:12px">The displacement <code>(·)<sub>a+b</sub></code> is what enforces the postictal ordering: the suppression window is anchored to the end of the chosen seizure block, not to an arbitrary later time.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Worked record</span>
+        <h3>P01: a witness for ψ<sub>PGES</sub></h3>
+        <div class="timeline" style="margin-top:14px" aria-label="P01 timeline with PGES witness markers">
+          <div class="tl-axis-row">
+            <span></span>
+            <div class="tl-axis" aria-hidden="true">
+              <span style="left:0%">0</span><span style="left:25%">30</span><span style="left:50%">60</span><span style="left:75%">90</span><span style="left:100%">120 s</span>
+            </div>
+          </div>
+          <div class="tl-content">
+            <div class="tl-labels" aria-hidden="true"><span>S</span><span>T</span><span>C</span><span>P</span></div>
+            <div class="tl-chart">
+              <div class="tl-track"><div class="tl-bar s used" style="left:8.333%;width:50%"><span>S</span></div></div>
+              <div class="tl-track"><div class="tl-bar t used" style="left:8.333%;width:16.667%"><span>T</span></div></div>
+              <div class="tl-track"><div class="tl-bar c used" style="left:26.667%;width:30%"><span>C</span></div></div>
+              <div class="tl-track"><div class="tl-bar p used" style="left:58.333%;width:37.5%"><span>P</span></div></div>
+              <div class="tl-markers" aria-hidden="true">
+                <div class="tl-marker" style="left:8.333%"><span>x = 10</span></div>
+                <div class="tl-marker" style="left:26.667%"><span>x+a = 32</span></div>
+                <div class="tl-marker" style="left:58.333%"><span>x+a+b = 70</span></div>
+                <div class="tl-marker" style="left:95.833%"><span>+c = 115</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-caption"><span>illustrative synthetic record</span><span>x=10, a=22, b=38, c=45</span></div>
+        </div>
+        <div class="pill-row" style="margin-top:12px">
+          <span class="pill strong">x = 10 s</span>
+          <span class="pill">a = 22 s</span>
+          <span class="pill">b = 38 s</span>
+          <span class="pill">c = 45 s</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="callout teal" style="margin-top:18px">
+      <span class="mark" aria-hidden="true">↗</span>
+      <div><strong>One evaluation set, two query formulas</strong>The paper's formula is the permissive reference. The playground applies one exact strict formula to the same cases: <code>∃x∃a∃b∃c [□<sub>10</sub>∅ ∧ (□<sub>a+b</sub>(S∧¬P))<sub>10</sub> ∧ (◊<sub>a</sub>(T∧¬C))<sub>10</sub> ∧ (◊<sub>b</sub>(C∧¬T))<sub>10+a</sub> ∧ (□<sub>c</sub>(P∧¬S))<sub>10+a+b</sub>]<sub>x</sub></code>. The exclusions are inside the formula: T/C may overlap when each exclusion has a witness, postictal T/C is allowed because the last conjunct excludes S, not T or C, and c may end before P does. Both counts are shown side by side.</div>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Support check</span>
+        <h3>Four interval operations, one witness</h3>
+        <div class="table-wrap" style="margin-top:14px">
+          <table class="check-table">
+            <thead><tr><th>Conjunct</th><th>Instantiated support</th><th>Check at x = 10</th></tr></thead>
+            <tbody>
+              <tr><td><code>□<sub>a+b</sub>S</code></td><td><code>[10, 10]</code></td><td class="pass">true</td></tr>
+              <tr><td><code>◊<sub>a</sub>T</code></td><td><code>(-12, 30]</code></td><td class="pass">true</td></tr>
+              <tr><td><code>(◊<sub>b</sub>C)<sub>a</sub></code></td><td><code>(-28, 46]</code></td><td class="pass">true</td></tr>
+              <tr><td><code>(□<sub>c</sub>P)<sub>a+b</sub></code></td><td><code>[10, 10]</code></td><td class="pass">true</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:12px">
+          For example, eroding <code>S = [10,70]</code> by <code>a+b = 60</code> gives the singleton
+          <code>[10,10]</code>; dilation of <code>T = [10,30]</code> by <code>22</code> gives
+          <code>(-12,30]</code>; and dilating <code>C = [32,68]</code> by <code>38</code> then shifting by
+          <code>22</code> gives <code>(-28,46]</code>. All four supports contain <code>x = 10</code>.
+        </p>
+      </article>
+      <article class="card">
+        <span class="tag">Witness selection</span>
+        <h3>Why these numbers are legitimate</h3>
+        <div class="steps" style="margin-top:14px">
+          <div class="step"><div><h3>a = 22 s</h3><p>The clonic phase starts at 32 s. Setting <code>x + a = 32</code> makes the tonic window <code>[10, 32)</code>; T = [10,30] lies inside it.</p></div></div>
+          <div class="step"><div><h3>b = 38 s</h3><p>The seizure ends at 70 s, so <code>a + b = 60</code> and <code>x + a + b = 70</code>. This maximizes the continuous S block and anchors P at seizure offset.</p></div></div>
+          <div class="step"><div><h3>c = 45 s</h3><p>P = [70,115] is active for exactly 45 s after the offset. The box condition holds on <code>[70,115)</code>.</p></div></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="result-grid" style="margin-top:18px" aria-label="Paper-reported PGES results">
+      <div class="result-card accent"><strong>37</strong><span>patients in cohort</span></div>
+      <div class="result-card"><strong>45</strong><span>matched patterns</span></div>
+      <div class="result-card"><strong>1,976</strong><span>records evaluated</span></div>
+      <div class="result-card"><strong>15.97 s</strong><span>reported runtime</span></div>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Reading the result</span>
+        <h3>Patients and patterns are different counts</h3>
+        <p>A patient is included once, but can contribute more than one matched annotation pattern. The paper reports <strong>37 patients</strong> and <strong>45 patterns</strong>, so some records contain multiple qualifying seizure/suppression configurations.</p>
+        <p style="margin-top:12px">The interface in Figure 3 returns the patient list and visualizes each matched pattern on a time-aligned axis. This is the same distinction the playground makes when it counts matched patients separately from matched seizure episodes.</p>
+      </article>
+      <article class="card">
+        <span class="tag amber">Reproducibility boundary</span>
+        <h3>What these numbers do and do not certify</h3>
+        <p>They certify the paper's end-to-end workflow on its clinical database. They do not certify the static demo, which uses ten synthetic records. The demo is intended to make the semantics inspectable and executable, not to reproduce the clinical cohort or its runtime.</p>
+        <p style="margin-top:12px">The paper itself describes the 15.97 s result as an illustrative feasibility result rather than a systems benchmark. Query planning, indexing, and comparison with hand-written database queries are left to a companion study.</p>
+      </article>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <article class="card">
+        <span class="tag">Run it locally</span>
+        <h3>From this page to the playground</h3>
+        <p>Open <a href="qel-playground.html">the companion playground</a>. It contains ten built-in records plus a 54-case manual evaluation set, GTC/PGES base/PGES strict presets, a suppression-duration filter, a Solver selector for the optimized or paper finite-cell path, and an audit panel that shows the witness and the support checks for every match.</p>
+        <pre class="code-block" style="margin-top:14px"><span class="c"># serve the static pages locally</span>
+cd docs
+python3 -m http.server 8080
+<span class="c"># open http://localhost:8080/qel-reproducibility.html</span></pre>
+        <p style="margin-top:12px">No backend, database, or build step is required for the pages themselves. For the support-algebra walkthrough behind the audit panel, open the <a href="qel-algorithm.html">core query algorithm page</a>.</p>
+      </article>
+      <article class="card">
+        <span class="tag">Audit trail</span>
+        <h3>What a reproducible result should contain</h3>
+        <div class="pill-row" style="margin-top:14px">
+          <span class="pill">BEST record</span>
+          <span class="pill">QEL formula</span>
+          <span class="pill">reference point / anchor</span>
+          <span class="pill">witness x, a, b, c</span>
+          <span class="pill">support for each conjunct</span>
+          <span class="pill">patient and pattern counts</span>
+        </div>
+        <p style="margin-top:14px">The playground exposes each of these for a selected record. For a clinical deployment, the same audit trail should also record the data version, annotation provenance, and the exact endpoint semantics used by the database.</p>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div>
+      Static reproducibility artifact for the QEL / BEST paper. No external dependencies.
+      <br>Paper-reported clinical statistics are cited, not recomputed here.
+    </div>
+    <div class="footer-links">
+      <a href="qel-playground.html">Playground</a>
+      <a href="qel-algorithm.html">Core algorithm</a>
+      <a href="https://github.com/yhc29/temporal-event-level-inverted-index-rocket/blob/main/telii-rocket/src/api/eeg_query_api.rs">Backend: eeg_query_api.rs</a>
+      <a href="https://github.com/yhc29/temporal-event-level-inverted-index-rocket/blob/main/telii-rocket/src/api/query_api.rs">Backend: query_api.rs</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

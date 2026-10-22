@@ -1,0 +1,2584 @@
+{
+  "name": "pges-manual-evaluation",
+  "version": "3.0.0",
+  "description": "One 54-case manual evaluation set. The same cases are checked against two query formulas: permissive base PGES and the exact strict PGES formula. The strict formula adds a 10 s no-event prefix, S without P throughout the seizure, T without C and C without T in their windows, and P without S after the offset. All exclusions are part of the formula; adjacent event boundaries are treated as meets.",
+  "created": "2026-10-21",
+  "labels": [
+    "S",
+    "T",
+    "C",
+    "P"
+  ],
+  "formula": {
+    "name": "PGES",
+    "expr": "∃x ∃a ∃b ∃c [ □_{a+b}S ∧ ◊_{a}T ∧ (◊_{b}C)_{a} ∧ (□_{c}P)_{a+b} ]x",
+    "notes": "x = seizure anchor, a = tonic window length, b = clonic window length, c = EEG suppression length. P must cover [x+a+b, x+a+b+c); the permissive base query may use a P interval that begins earlier."
+  },
+  "axis_seconds": [
+    0,
+    240
+  ],
+  "cases": [
+    {
+      "id": "ME01",
+      "category": "valid_baseline",
+      "title": "Classic PGES - clean containment/order",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "T contained in first a of S, C contained after displacement by a in remainder, P starts exactly at S.b"
+      },
+      "relation_focus": {
+        "S-T": "T contained within S (overlapping start region)",
+        "T-C": "C after T, no overlap in the chosen split",
+        "S-C": "C contained within S",
+        "S-P": "P starts at or immediately after S.b",
+        "T-P": "T before P with gap (seizure in between)",
+        "C-P": "C before P with gap (seizure in between)"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            70
+          ]
+        ],
+        "T": [
+          [
+            10,
+            30
+          ]
+        ],
+        "C": [
+          [
+            32,
+            68
+          ]
+        ],
+        "P": [
+          [
+            70,
+            115
+          ]
+        ]
+      },
+      "note": "Baseline. P starts exactly at seizure offset x+a+b.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME02",
+      "category": "valid_relation_cover",
+      "title": "S contains T,C; P meets S at boundary (adjacent)",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Boundary-adjacent is fine if P starts at S.b. Tests 'meets/after' relation between S and P."
+      },
+      "relation_focus": {
+        "S-P": "P.a == S.b (meets/adjacent, starts at offset)"
+      },
+      "events": {
+        "S": [
+          [
+            0,
+            50
+          ]
+        ],
+        "T": [
+          [
+            0,
+            12
+          ]
+        ],
+        "C": [
+          [
+            18,
+            48
+          ]
+        ],
+        "P": [
+          [
+            50,
+            90
+          ]
+        ]
+      },
+      "note": "Tests boundary case between S and P.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME03",
+      "category": "valid_relation_cover",
+      "title": "T and C only slightly separated, both inside S",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "T and C must satisfy (◊_a T) and ((◊_b C))_a; small gap between T and C is allowed if consistent with some a,b."
+      },
+      "relation_focus": {
+        "T-C": "C after T (separated by small gap, no overlap)"
+      },
+      "events": {
+        "S": [
+          [
+            15,
+            80
+          ]
+        ],
+        "T": [
+          [
+            15,
+            25
+          ]
+        ],
+        "C": [
+          [
+            28,
+            78
+          ]
+        ],
+        "P": [
+          [
+            80,
+            130
+          ]
+        ]
+      },
+      "note": "Small inter-phase gap.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME04",
+      "category": "valid_relation_cover",
+      "title": "T starts exactly at seizure onset",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "T just needs to occur within the first a window of the chosen S block. T starting at S.a is fine."
+      },
+      "relation_focus": {
+        "S-T": "T starts at S.a or inside (contained/starts)"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            65
+          ]
+        ],
+        "T": [
+          [
+            20,
+            35
+          ]
+        ],
+        "C": [
+          [
+            38,
+            62
+          ]
+        ],
+        "P": [
+          [
+            65,
+            110
+          ]
+        ]
+      },
+      "note": "T starts at seizure onset.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME05",
+      "category": "valid_relation_cover",
+      "title": "C ends near S end",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "C can extend close to end of S as long as S remains □_{a+b} and C is found in (◊_b C)_a."
+      },
+      "relation_focus": {
+        "S-C": "C finishes near S.b (C.b close to S.b)"
+      },
+      "events": {
+        "S": [
+          [
+            5,
+            60
+          ]
+        ],
+        "T": [
+          [
+            5,
+            18
+          ]
+        ],
+        "C": [
+          [
+            22,
+            59
+          ]
+        ],
+        "P": [
+          [
+            60,
+            105
+          ]
+        ]
+      },
+      "note": "C ends just before S.b.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME06",
+      "category": "duration_variation",
+      "title": "Long tonic, short clonic",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Tests different a/b split. The formula allows choosing a,b freely as long as consistent."
+      },
+      "relation_focus": {
+        "duration_split": "a large relative to b"
+      },
+      "events": {
+        "S": [
+          [
+            0,
+            90
+          ]
+        ],
+        "T": [
+          [
+            0,
+            50
+          ]
+        ],
+        "C": [
+          [
+            55,
+            88
+          ]
+        ],
+        "P": [
+          [
+            90,
+            140
+          ]
+        ]
+      },
+      "note": "a large, b small.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME07",
+      "category": "duration_variation",
+      "title": "Short tonic, long clonic",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Tests inverse split a small, b large."
+      },
+      "relation_focus": {
+        "duration_split": "a small relative to b"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            100
+          ]
+        ],
+        "T": [
+          [
+            10,
+            18
+          ]
+        ],
+        "C": [
+          [
+            25,
+            98
+          ]
+        ],
+        "P": [
+          [
+            100,
+            150
+          ]
+        ]
+      },
+      "note": "a small, b large.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME08",
+      "category": "duration_variation",
+      "title": "Very short EEG suppression (c small)",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Formula only requires □_c P to hold at x+a+b for some c>0. Tests short c."
+      },
+      "relation_focus": {
+        "S-P": "short P interval",
+        "duration_c": "small c"
+      },
+      "events": {
+        "S": [
+          [
+            12,
+            55
+          ]
+        ],
+        "T": [
+          [
+            12,
+            24
+          ]
+        ],
+        "C": [
+          [
+            28,
+            53
+          ]
+        ],
+        "P": [
+          [
+            55,
+            62
+          ]
+        ]
+      },
+      "note": "c = 7s (short).",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME09",
+      "category": "duration_variation",
+      "title": "Long EEG suppression (c large)",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Long P is fine as long as it holds continuously from offset."
+      },
+      "relation_focus": {
+        "duration_c": "large c"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            70
+          ]
+        ],
+        "T": [
+          [
+            20,
+            32
+          ]
+        ],
+        "C": [
+          [
+            36,
+            68
+          ]
+        ],
+        "P": [
+          [
+            70,
+            170
+          ]
+        ]
+      },
+      "note": "c = 100s (long).",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME10",
+      "category": "multi_episode",
+      "title": "Two seizures, both PGES",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "Each qualifying S block can produce a witness; formula is checked per record and counts patterns."
+      },
+      "relation_focus": {
+        "multi": "multiple S episodes"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            50
+          ],
+          [
+            120,
+            170
+          ]
+        ],
+        "T": [
+          [
+            10,
+            20
+          ],
+          [
+            120,
+            135
+          ]
+        ],
+        "C": [
+          [
+            24,
+            48
+          ],
+          [
+            140,
+            168
+          ]
+        ],
+        "P": [
+          [
+            50,
+            90
+          ],
+          [
+            170,
+            210
+          ]
+        ]
+      },
+      "note": "Expect 2 patterns.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME11",
+      "category": "strict_positive",
+      "title": "Extra pre-ictal events + one valid PGES",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The middle T/C/P intervals form a witness; the extra pre-ictal intervals are ignored."
+      },
+      "relation_focus": {
+        "noise_intervals": "extra T/C/P intervals"
+      },
+      "events": {
+        "S": [
+          [
+            30,
+            80
+          ]
+        ],
+        "T": [
+          [
+            5,
+            10
+          ],
+          [
+            30,
+            42
+          ]
+        ],
+        "C": [
+          [
+            12,
+            18
+          ],
+          [
+            46,
+            78
+          ]
+        ],
+        "P": [
+          [
+            0,
+            4
+          ],
+          [
+            80,
+            125
+          ]
+        ]
+      },
+      "note": "Extra T/C/P intervals sit before the 10 s no-event prefix. Only the middle triple is used; base and strict both match one pattern.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The extra events end before the prefix [20,30), so □10∅ holds; the middle triple supplies the other four conjuncts."
+      }
+    },
+    {
+      "id": "ME12",
+      "category": "multi_episode",
+      "title": "Two seizures, only the second is PGES",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Only the second seizure has P starting at its offset; the first has no P."
+      },
+      "relation_focus": {
+        "multi": "partial match"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            50
+          ],
+          [
+            130,
+            180
+          ]
+        ],
+        "T": [
+          [
+            10,
+            22
+          ],
+          [
+            130,
+            145
+          ]
+        ],
+        "C": [
+          [
+            26,
+            48
+          ],
+          [
+            148,
+            178
+          ]
+        ],
+        "P": [
+          [
+            180,
+            220
+          ]
+        ]
+      },
+      "note": "The first seizure has no P at its offset; the second has a valid P (EEG suppression) starting at 180 s. Base and strict both match one pattern.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The second seizure has a witness satisfying all five strict conjuncts; the first has no P at its offset."
+      }
+    },
+    {
+      "id": "ME13",
+      "category": "label_error",
+      "title": "T is before S (wrong temporal relation)",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "T must occur within first a of the chosen S anchor (◊_a T). If T is entirely before S, cannot satisfy."
+      },
+      "relation_focus": {
+        "S-T": "T before S (no overlap/containment in required position)"
+      },
+      "events": {
+        "S": [
+          [
+            40,
+            90
+          ]
+        ],
+        "T": [
+          [
+            0,
+            10
+          ]
+        ],
+        "C": [
+          [
+            50,
+            88
+          ]
+        ],
+        "P": [
+          [
+            90,
+            135
+          ]
+        ]
+      },
+      "note": "T is in wrong place.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME14",
+      "category": "strict_contrast",
+      "title": "T contains S: base accepts, strict rejects",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+      },
+      "relation_focus": {
+        "S-T": "T contains S"
+      },
+      "events": {
+        "S": [
+          [
+            30,
+            60
+          ]
+        ],
+        "T": [
+          [
+            10,
+            80
+          ]
+        ],
+        "C": [
+          [
+            40,
+            58
+          ]
+        ],
+        "P": [
+          [
+            60,
+            110
+          ]
+        ]
+      },
+      "note": "T covers the whole seizure and extends into the pre-ictal quiet period. Base only needs a T occurrence in its window; strict fails □10∅ because T intersects [20,30).",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "T=[10,80] intersects the 10 s no-event prefix [20,30), so □10∅ fails."
+      }
+    },
+    {
+      "id": "ME15",
+      "category": "label_error",
+      "title": "C before T (reversed phases)",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "(◊_b C)_a requires C to occur after displacement by a relative to x; if C is before T in time relative to valid a, cannot satisfy."
+      },
+      "relation_focus": {
+        "T-C": "C before T"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            80
+          ]
+        ],
+        "T": [
+          [
+            50,
+            65
+          ]
+        ],
+        "C": [
+          [
+            25,
+            40
+          ]
+        ],
+        "P": [
+          [
+            80,
+            120
+          ]
+        ]
+      },
+      "note": "Classic reversed phases case.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME16",
+      "category": "strict_boundary",
+      "title": "C overlaps T: strict accepts when T-only precedes C-only",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+      },
+      "relation_focus": {
+        "T-C": "overlap"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            70
+          ]
+        ],
+        "T": [
+          [
+            10,
+            40
+          ]
+        ],
+        "C": [
+          [
+            35,
+            65
+          ]
+        ],
+        "P": [
+          [
+            70,
+            115
+          ]
+        ]
+      },
+      "note": "T=[10,40] and C=[35,65] overlap, but T∧¬C holds on [10,35) and C∧¬T holds after 40. The strict formula accepts because it requires witnesses for each exclusion, not disjoint full intervals.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "reason": "T∧¬C occurs before C∧¬T, so both strict windows have a witness despite the overlap."
+      }
+    },
+    {
+      "id": "ME17",
+      "category": "strict_contrast",
+      "title": "P starts before S ends: base accepts, strict rejects",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+      },
+      "relation_focus": {
+        "S-P": "overlap (P starts during S)"
+      },
+      "events": {
+        "S": [
+          [
+            15,
+            75
+          ]
+        ],
+        "T": [
+          [
+            15,
+            35
+          ]
+        ],
+        "C": [
+          [
+            40,
+            72
+          ]
+        ],
+        "P": [
+          [
+            65,
+            110
+          ]
+        ]
+      },
+      "note": "P covers the offset but begins while S is still active. Base accepts; strict requires S without P for the whole S block.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "P overlaps S from 65 to 75 s, so S∧¬P fails."
+      }
+    },
+    {
+      "id": "ME18",
+      "category": "label_error",
+      "title": "P has gap after S (starts after offset)",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "PGES requires P at exactly x+a+b (immediately at offset). Gap breaks (□_c P)_{a+b}."
+      },
+      "relation_focus": {
+        "S-P": "P after S with gap"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            70
+          ]
+        ],
+        "T": [
+          [
+            10,
+            30
+          ]
+        ],
+        "C": [
+          [
+            35,
+            68
+          ]
+        ],
+        "P": [
+          [
+            75,
+            120
+          ]
+        ]
+      },
+      "note": "3s gap - should fail.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME19",
+      "category": "label_error",
+      "title": "P is before S",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "P must be after seizure offset, not before."
+      },
+      "relation_focus": {
+        "S-P": "P before S"
+      },
+      "events": {
+        "S": [
+          [
+            50,
+            100
+          ]
+        ],
+        "T": [
+          [
+            50,
+            65
+          ]
+        ],
+        "C": [
+          [
+            68,
+            98
+          ]
+        ],
+        "P": [
+          [
+            5,
+            25
+          ]
+        ]
+      },
+      "note": "Pre-ictal labeled as P.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME20",
+      "category": "strict_contrast",
+      "title": "P contains S: base accepts, strict rejects",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+      },
+      "relation_focus": {
+        "S-P": "P contains S"
+      },
+      "events": {
+        "S": [
+          [
+            60,
+            90
+          ]
+        ],
+        "T": [
+          [
+            60,
+            72
+          ]
+        ],
+        "C": [
+          [
+            74,
+            88
+          ]
+        ],
+        "P": [
+          [
+            40,
+            130
+          ]
+        ]
+      },
+      "note": "P covers the seizure itself. Base accepts; strict fails S∧¬P.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "P covers the whole seizure, so S∧¬P is empty."
+      }
+    },
+    {
+      "id": "ME21",
+      "category": "label_error",
+      "title": "Missing P entirely",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "PGES requires the P conjunct; without P no witness."
+      },
+      "relation_focus": {
+        "missing": "no P"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            75
+          ]
+        ],
+        "T": [
+          [
+            20,
+            38
+          ]
+        ],
+        "C": [
+          [
+            42,
+            73
+          ]
+        ],
+        "P": []
+      },
+      "note": "GTC-like but no suppression.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME22",
+      "category": "label_error",
+      "title": "Missing T",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "◊_a T required."
+      },
+      "relation_focus": {
+        "missing": "no T"
+      },
+      "events": {
+        "S": [
+          [
+            15,
+            70
+          ]
+        ],
+        "T": [],
+        "C": [
+          [
+            30,
+            68
+          ]
+        ],
+        "P": [
+          [
+            70,
+            115
+          ]
+        ]
+      },
+      "note": "Only C and S.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME23",
+      "category": "label_error",
+      "title": "Missing C",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "(◊_b C)_a required."
+      },
+      "relation_focus": {
+        "missing": "no C"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            60
+          ]
+        ],
+        "T": [
+          [
+            10,
+            28
+          ]
+        ],
+        "C": [],
+        "P": [
+          [
+            60,
+            100
+          ]
+        ]
+      },
+      "note": "Only tonic.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME24",
+      "category": "label_error",
+      "title": "T outside S entirely",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "T must be placeable in first a of some S block."
+      },
+      "relation_focus": {
+        "S-T": "disjoint"
+      },
+      "events": {
+        "S": [
+          [
+            50,
+            110
+          ]
+        ],
+        "T": [
+          [
+            10,
+            20
+          ]
+        ],
+        "C": [
+          [
+            65,
+            108
+          ]
+        ],
+        "P": [
+          [
+            110,
+            150
+          ]
+        ]
+      },
+      "note": "T far away from S.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME25",
+      "category": "label_error",
+      "title": "C outside S entirely",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "C must be findable in (◊_b C)_a within S."
+      },
+      "relation_focus": {
+        "S-C": "disjoint"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            80
+          ]
+        ],
+        "T": [
+          [
+            20,
+            35
+          ]
+        ],
+        "C": [
+          [
+            150,
+            165
+          ]
+        ],
+        "P": [
+          [
+            80,
+            125
+          ]
+        ]
+      },
+      "note": "C after seizure.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME26",
+      "category": "label_error",
+      "title": "Wrong label assignment - T labeled as C and vice versa",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "Labels are fixed to S,T,C,P. Swapping breaks positions."
+      },
+      "relation_focus": {
+        "labels_swapped": "T<->C"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            70
+          ]
+        ],
+        "T": [
+          [
+            35,
+            68
+          ]
+        ],
+        "C": [
+          [
+            10,
+            30
+          ]
+        ],
+        "P": [
+          [
+            70,
+            115
+          ]
+        ]
+      },
+      "note": "Clonic labeled as tonic and tonic as clonic.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME27",
+      "category": "label_error",
+      "title": "P labeled as C",
+      "expected": {
+        "shouldMatch": false,
+        "reason": "P must be the suppression label at offset; if mislabeled, conjunct fails."
+      },
+      "relation_focus": {
+        "label_misassigned": "P->C"
+      },
+      "events": {
+        "S": [
+          [
+            15,
+            75
+          ]
+        ],
+        "T": [
+          [
+            15,
+            32
+          ]
+        ],
+        "C": [
+          [
+            40,
+            73
+          ],
+          [
+            75,
+            120
+          ]
+        ],
+        "P": []
+      },
+      "note": "Suppression is labeled C.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "No base witness exists, so no strict witness exists."
+      }
+    },
+    {
+      "id": "ME28",
+      "category": "duration_variation",
+      "title": "Very short seizure - tight constraints",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All three parts (T,C,P) must fit with positive durations satisfying inequalities."
+      },
+      "relation_focus": {
+        "duration_total": "short S"
+      },
+      "events": {
+        "S": [
+          [
+            0,
+            35
+          ]
+        ],
+        "T": [
+          [
+            0,
+            10
+          ]
+        ],
+        "C": [
+          [
+            12,
+            33
+          ]
+        ],
+        "P": [
+          [
+            35,
+            55
+          ]
+        ]
+      },
+      "note": "Tight timing.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME29",
+      "category": "duration_variation",
+      "title": "Very long seizure",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Long intervals are fine."
+      },
+      "relation_focus": {
+        "duration_total": "long S"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            150
+          ]
+        ],
+        "T": [
+          [
+            10,
+            40
+          ]
+        ],
+        "C": [
+          [
+            50,
+            148
+          ]
+        ],
+        "P": [
+          [
+            150,
+            200
+          ]
+        ]
+      },
+      "note": "Long S.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME30",
+      "category": "relation_cover",
+      "title": "T starts at seizure onset with later C",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "T can start at or after x? x is chosen from S; T just needs to be in first a."
+      },
+      "relation_focus": {
+        "S-T": "T starts at S.a"
+      },
+      "events": {
+        "S": [
+          [
+            25,
+            90
+          ]
+        ],
+        "T": [
+          [
+            25,
+            45
+          ]
+        ],
+        "C": [
+          [
+            50,
+            88
+          ]
+        ],
+        "P": [
+          [
+            90,
+            140
+          ]
+        ]
+      },
+      "note": "T starts at seizure onset.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME31",
+      "category": "relation_cover",
+      "title": "C is inside S but placed such that after-a gives valid window",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Tests the displacement (◊_b C)_a."
+      },
+      "relation_focus": {
+        "S-C": "C contained in S"
+      },
+      "events": {
+        "S": [
+          [
+            5,
+            95
+          ]
+        ],
+        "T": [
+          [
+            5,
+            30
+          ]
+        ],
+        "C": [
+          [
+            40,
+            90
+          ]
+        ],
+        "P": [
+          [
+            95,
+            145
+          ]
+        ]
+      },
+      "note": "C later in seizure.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME32",
+      "category": "multi_episode",
+      "title": "Multiple S intervals, one valid pattern",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The first episode is complete; the second has no matching T/C/P."
+      },
+      "relation_focus": {
+        "multi_wrong": "wrong S episode"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            40
+          ],
+          [
+            100,
+            150
+          ]
+        ],
+        "T": [
+          [
+            10,
+            20
+          ]
+        ],
+        "C": [
+          [
+            25,
+            38
+          ]
+        ],
+        "P": [
+          [
+            40,
+            70
+          ]
+        ]
+      },
+      "note": "The first seizure has a complete T/C/P configuration; the second only has an S interval. Base and strict both match one pattern.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The first episode satisfies all five strict conjuncts; the second is not a candidate."
+      }
+    },
+    {
+      "id": "ME33",
+      "category": "multi_episode",
+      "title": "S has multiple intervals, only first valid",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Second episode missing P or has wrong timing."
+      },
+      "relation_focus": {
+        "multi_partial": "only first episode valid"
+      },
+      "events": {
+        "S": [
+          [
+            0,
+            50
+          ],
+          [
+            120,
+            170
+          ]
+        ],
+        "T": [
+          [
+            0,
+            15
+          ],
+          [
+            120,
+            135
+          ]
+        ],
+        "C": [
+          [
+            20,
+            48
+          ],
+          [
+            140,
+            160
+          ]
+        ],
+        "P": [
+          [
+            50,
+            90
+          ]
+        ]
+      },
+      "note": "Second has no P.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME34",
+      "category": "duration_variation",
+      "title": "P is split after an initial continuous run",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Some positive c exists starting at the offset, even if the suppression is short or later resumes."
+      },
+      "relation_focus": {
+        "S-P": "P not continuous after offset"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            60
+          ]
+        ],
+        "T": [
+          [
+            10,
+            25
+          ]
+        ],
+        "C": [
+          [
+            30,
+            58
+          ]
+        ],
+        "P": [
+          [
+            60,
+            75
+          ],
+          [
+            80,
+            100
+          ]
+        ]
+      },
+      "note": "P starts at the offset and holds for 15 s, then resumes later. Base and strict both accept c=15; raise the c filter to reject it.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The P∧¬S run is 15 s; c=15 satisfies the final conjunct. Raise the c filter to reject."
+      }
+    },
+    {
+      "id": "ME35",
+      "category": "duration_variation",
+      "title": "P is only 2 s long",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Some positive c exists starting at the offset, even if the suppression is short or later resumes."
+      },
+      "relation_focus": {
+        "duration_c": "P too short relative to possible c"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            70
+          ]
+        ],
+        "T": [
+          [
+            20,
+            35
+          ]
+        ],
+        "C": [
+          [
+            40,
+            68
+          ]
+        ],
+        "P": [
+          [
+            70,
+            72
+          ]
+        ]
+      },
+      "note": "P starts at the offset but is very short. Base and strict accept c=2; raise the c filter above 2 s to reject it.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The P∧¬S run is 2 s; c=2 satisfies the final conjunct. Raise the c filter above 2 s to reject."
+      }
+    },
+    {
+      "id": "ME36",
+      "category": "relation_cover",
+      "title": "All relations: S contains T,C; T before C; C before P at boundary",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Covers contain/before/after/meet relations explicitly."
+      },
+      "relation_focus": {
+        "S-T": "contain",
+        "T-C": "before (separated)",
+        "C-P": "C before P with gap at boundary? C ends at S.b-?, P starts at S.b so C before P"
+      },
+      "events": {
+        "S": [
+          [
+            0,
+            100
+          ]
+        ],
+        "T": [
+          [
+            5,
+            30
+          ]
+        ],
+        "C": [
+          [
+            40,
+            95
+          ]
+        ],
+        "P": [
+          [
+            100,
+            160
+          ]
+        ]
+      },
+      "note": "Clean relation set.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME37",
+      "category": "strict_contrast",
+      "title": "T overlaps P and C: base accepts, strict rejects",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+      },
+      "relation_focus": {
+        "T-P": "overlap (impossible)"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            50
+          ]
+        ],
+        "T": [
+          [
+            10,
+            45
+          ]
+        ],
+        "C": [
+          [
+            30,
+            48
+          ]
+        ],
+        "P": [
+          [
+            40,
+            90
+          ]
+        ]
+      },
+      "note": "The seizure components overlap heavily. Base finds a split; strict fails S∧¬P because P starts while S is still active.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "P starts at 40 s while S is still active, so S∧¬P fails."
+      }
+    },
+    {
+      "id": "ME38",
+      "category": "strict_contrast",
+      "title": "C extends past S: base accepts, strict rejects",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+      },
+      "relation_focus": {
+        "C-P": "C contains P"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            80
+          ]
+        ],
+        "T": [
+          [
+            20,
+            35
+          ]
+        ],
+        "C": [
+          [
+            40,
+            120
+          ]
+        ],
+        "P": [
+          [
+            60,
+            90
+          ]
+        ]
+      },
+      "note": "C reaches beyond the offset, but postictal C is allowed. Strict fails because P starts before S ends.",
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "P starts at 60 s while S is still active, so S∧¬P fails; postictal C is allowed."
+      }
+    },
+    {
+      "id": "ME39",
+      "category": "multi_episode",
+      "title": "Two separate seizures far apart, both valid with long gaps",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "Multiple episodes, well separated."
+      },
+      "relation_focus": {
+        "multi": "separated episodes"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            50
+          ],
+          [
+            150,
+            190
+          ]
+        ],
+        "T": [
+          [
+            10,
+            20
+          ],
+          [
+            150,
+            165
+          ]
+        ],
+        "C": [
+          [
+            24,
+            48
+          ],
+          [
+            170,
+            188
+          ]
+        ],
+        "P": [
+          [
+            50,
+            90
+          ],
+          [
+            190,
+            230
+          ]
+        ]
+      },
+      "note": "Two well-separated seizures, both valid; the second begins 100 s after the first ends.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME40",
+      "category": "relation_cover",
+      "title": "Minimal suppression: c = 3 s",
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Minimum c > 0 as long as P holds continuously."
+      },
+      "relation_focus": {
+        "duration_c": "minimal"
+      },
+      "events": {
+        "S": [
+          [
+            50,
+            100
+          ]
+        ],
+        "T": [
+          [
+            50,
+            62
+          ]
+        ],
+        "C": [
+          [
+            66,
+            98
+          ]
+        ],
+        "P": [
+          [
+            100,
+            103
+          ]
+        ]
+      },
+      "note": "P is short but positive, so c=3 is enough. This is the minimum useful suppression duration in the set.",
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "All five strict conjuncts hold: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, and P∧¬S."
+      }
+    },
+    {
+      "id": "ME41",
+      "category": "strict_positive",
+      "title": "Distant pre-ictal event outside the quiet window",
+      "note": "A tonic event 20 s before S is outside the half-open 10 s prefix. Both base and strict accept.",
+      "relation_focus": {
+        "pre_ictal": "event at 5-10 s is outside (20,30)",
+        "T-C": "separated",
+        "S-P": "P starts at S.b"
+      },
+      "events": {
+        "S": [
+          [
+            30,
+            85
+          ]
+        ],
+        "T": [
+          [
+            5,
+            10
+          ],
+          [
+            30,
+            48
+          ]
+        ],
+        "C": [
+          [
+            52,
+            82
+          ]
+        ],
+        "P": [
+          [
+            85,
+            130
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses T=[30,48], C=[52,82], P=[85,130]."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The 10 s prefix [20,30) is empty; the other four conjuncts also hold with P starting at 85 s."
+      }
+    },
+    {
+      "id": "ME42",
+      "category": "strict_contrast",
+      "title": "Pre-ictal T inside the quiet window",
+      "note": "A prior tonic event overlaps the 10 s no-event prefix. Base accepts; strict fails □10∅.",
+      "relation_focus": {
+        "pre_ictal": "T=[28,36] intersects (30,40)",
+        "T-C": "separated"
+      },
+      "events": {
+        "S": [
+          [
+            40,
+            95
+          ]
+        ],
+        "T": [
+          [
+            28,
+            36
+          ],
+          [
+            40,
+            55
+          ]
+        ],
+        "C": [
+          [
+            60,
+            92
+          ]
+        ],
+        "P": [
+          [
+            95,
+            140
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses the in-seizure T=[40,55] and ignores the earlier T."
+      },
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "The prefix [30,40) intersects T=[28,36]."
+      }
+    },
+    {
+      "id": "ME43",
+      "category": "strict_contrast",
+      "title": "Pre-ictal P inside the quiet window",
+      "note": "A short P-like interval sits inside the 10 s no-event prefix. Base accepts the later P; strict fails □10∅.",
+      "relation_focus": {
+        "pre_ictal": "P=[44,48] intersects (40,50)",
+        "S-P": "the used P starts at 100"
+      },
+      "events": {
+        "S": [
+          [
+            50,
+            100
+          ]
+        ],
+        "T": [
+          [
+            50,
+            65
+          ]
+        ],
+        "C": [
+          [
+            70,
+            98
+          ]
+        ],
+        "P": [
+          [
+            44,
+            48
+          ],
+          [
+            100,
+            140
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses P=[100,140] at the offset and ignores the earlier P."
+      },
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "The prefix [40,50) intersects P=[44,48]."
+      }
+    },
+    {
+      "id": "ME44",
+      "category": "strict_positive",
+      "title": "Two seizures 4 s apart: strict accepts with c=4 s",
+      "note": "The first P (EEG suppression) starts at 50 s and the next S starts at 54 s. The formula can use c=4 s, so P∧¬S holds for the chosen postictal window. Base finds two episodes; strict finds the first.",
+      "relation_focus": {
+        "multi": "close episodes",
+        "postictal": "first P overlaps second S",
+        "pre_ictal": "second S follows first S by 4 s"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            50
+          ],
+          [
+            54,
+            100
+          ]
+        ],
+        "T": [
+          [
+            10,
+            20
+          ],
+          [
+            54,
+            70
+          ]
+        ],
+        "C": [
+          [
+            24,
+            48
+          ],
+          [
+            74,
+            98
+          ]
+        ],
+        "P": [
+          [
+            50,
+            90
+          ],
+          [
+            100,
+            140
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "Both S episodes have a base witness."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "reason": "The first episode has a witness with c=4 s: P∧¬S holds from the offset at 50 s until the second S starts at 54 s."
+      }
+    },
+    {
+      "id": "ME45",
+      "category": "multi_episode",
+      "title": "Two well-separated strict episodes",
+      "note": "The first P ends 12 s before the second S starts, so both episodes satisfy the strict formula.",
+      "relation_focus": {
+        "multi": "separated episodes",
+        "postictal": "first P ends before second S",
+        "pre_ictal": "second quiet window is empty"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            50
+          ],
+          [
+            70,
+            118
+          ]
+        ],
+        "T": [
+          [
+            10,
+            20
+          ],
+          [
+            70,
+            86
+          ]
+        ],
+        "C": [
+          [
+            24,
+            48
+          ],
+          [
+            90,
+            116
+          ]
+        ],
+        "P": [
+          [
+            50,
+            58
+          ],
+          [
+            118,
+            158
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "Both S episodes have a base witness."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 2,
+        "reason": "Both episodes satisfy all five strict conjuncts."
+      }
+    },
+    {
+      "id": "ME46",
+      "category": "strict_positive",
+      "title": "Postictal C: strict allows it because it is not S",
+      "note": "C continues after the seizure offset inside P. The strict formula only excludes S postictally; C=[80,95] is allowed, so the record still matches.",
+      "relation_focus": {
+        "postictal": "C=[80,95] intersects (75,120)"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            75
+          ]
+        ],
+        "T": [
+          [
+            20,
+            38
+          ]
+        ],
+        "C": [
+          [
+            42,
+            72
+          ],
+          [
+            80,
+            95
+          ]
+        ],
+        "P": [
+          [
+            75,
+            120
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses C=[42,72] before the offset."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "reason": "The final conjunct is P∧¬S, not P-only. The extra C occurs while P is active but does not violate ¬S."
+      }
+    },
+    {
+      "id": "ME47",
+      "category": "strict_positive",
+      "title": "Postictal T: strict allows it because it is not S",
+      "note": "An extra tonic event occurs after the seizure offset while P is active. The strict formula excludes S postictally, not T, so the record still matches.",
+      "relation_focus": {
+        "postictal": "T=[85,95] intersects (80,125)"
+      },
+      "events": {
+        "S": [
+          [
+            25,
+            80
+          ]
+        ],
+        "T": [
+          [
+            25,
+            40
+          ],
+          [
+            85,
+            95
+          ]
+        ],
+        "C": [
+          [
+            45,
+            78
+          ]
+        ],
+        "P": [
+          [
+            80,
+            125
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses T=[25,40] before the offset."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "reason": "The final conjunct is P∧¬S. The extra T at [85,95] does not violate ¬S."
+      }
+    },
+    {
+      "id": "ME48",
+      "category": "strict_contrast",
+      "title": "T extends past the seizure offset",
+      "note": "T starts inside S but covers all of C. Base only needs a T occurrence; strict fails because C∧¬T is empty.",
+      "relation_focus": {
+        "S-T": "T=[30,90] is not contained in S=[30,80]"
+      },
+      "events": {
+        "S": [
+          [
+            30,
+            80
+          ]
+        ],
+        "T": [
+          [
+            30,
+            90
+          ]
+        ],
+        "C": [
+          [
+            50,
+            78
+          ]
+        ],
+        "P": [
+          [
+            80,
+            120
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base finds T at the seizure onset and a valid C after the split."
+      },
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "T=[30,90] covers C=[50,78], so C∧¬T is empty."
+      }
+    },
+    {
+      "id": "ME49",
+      "category": "strict_boundary",
+      "title": "T ends exactly when C starts",
+      "note": "Tonic and clonic intervals touch at 40 s. With half-open evaluation, T∧¬C and C∧¬T both have witnesses.",
+      "relation_focus": {
+        "T-C": "T.b == C.a = 40"
+      },
+      "events": {
+        "S": [
+          [
+            15,
+            75
+          ]
+        ],
+        "T": [
+          [
+            15,
+            40
+          ]
+        ],
+        "C": [
+          [
+            40,
+            72
+          ]
+        ],
+        "P": [
+          [
+            75,
+            120
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base accepts the adjacent T and C intervals."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "T∧¬C is non-empty before 40 s and C∧¬T after 40 s; all other conjuncts hold."
+      }
+    },
+    {
+      "id": "ME50",
+      "category": "strict_boundary",
+      "title": "T and C overlap by 2 s: strict still accepts",
+      "note": "T=[10,42] and C=[40,68] overlap, but T∧¬C holds before 40 and C∧¬T holds after 42. A short overlap does not remove either strict witness.",
+      "relation_focus": {
+        "T-C": "overlap [40,42]"
+      },
+      "events": {
+        "S": [
+          [
+            10,
+            70
+          ]
+        ],
+        "T": [
+          [
+            10,
+            42
+          ]
+        ],
+        "C": [
+          [
+            40,
+            68
+          ]
+        ],
+        "P": [
+          [
+            70,
+            115
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base can choose a split at C onset and still satisfy the existential windows."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "reason": "T∧¬C and C∧¬T are both non-empty on opposite sides of the overlap."
+      }
+    },
+    {
+      "id": "ME51",
+      "category": "strict_contrast",
+      "title": "P starts 3 s before the offset",
+      "note": "P covers the offset but starts before S ends. Base accepts; strict fails S∧¬P.",
+      "relation_focus": {
+        "S-P": "P.a=65 < offset=68"
+      },
+      "events": {
+        "S": [
+          [
+            12,
+            68
+          ]
+        ],
+        "T": [
+          [
+            12,
+            30
+          ]
+        ],
+        "C": [
+          [
+            34,
+            66
+          ]
+        ],
+        "P": [
+          [
+            65,
+            110
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "P holds continuously from the offset onward."
+      },
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "P starts at 65 s while S is still active, so S∧¬P fails."
+      }
+    },
+    {
+      "id": "ME52",
+      "category": "strict_boundary",
+      "title": "Pre-ictal event ends exactly at the quiet boundary",
+      "note": "A P interval ends at 30 s, exactly where the half-open 10 s no-event prefix begins. The boundary meet is allowed.",
+      "relation_focus": {
+        "pre_ictal": "P=[28,30] touches the boundary of (30,40)"
+      },
+      "events": {
+        "S": [
+          [
+            40,
+            95
+          ]
+        ],
+        "T": [
+          [
+            40,
+            55
+          ]
+        ],
+        "C": [
+          [
+            60,
+            92
+          ]
+        ],
+        "P": [
+          [
+            28,
+            30
+          ],
+          [
+            95,
+            140
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses the EEG-suppression P=[95,140]."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "The prefix [30,40) starts after P ends at 30 s; the meet does not intersect it."
+      }
+    },
+    {
+      "id": "ME53",
+      "category": "strict_positive",
+      "title": "Postictal S: strict shortens c before the next S",
+      "note": "A second seizure starts at 85 s while P is still active. The formula can use c=15 s, so P∧¬S holds until 85 s. It does not require c to cover the full P interval.",
+      "relation_focus": {
+        "postictal": "second S=[85,140] intersects (70,115)"
+      },
+      "events": {
+        "S": [
+          [
+            20,
+            70
+          ],
+          [
+            85,
+            140
+          ]
+        ],
+        "T": [
+          [
+            20,
+            38
+          ]
+        ],
+        "C": [
+          [
+            42,
+            68
+          ]
+        ],
+        "P": [
+          [
+            70,
+            115
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base finds a witness for the first seizure and ignores the later S."
+      },
+      "expected_strict": {
+        "shouldMatch": true,
+        "reason": "The first episode has a witness with c=15 s: P∧¬S holds from 70 s to the second S at 85 s."
+      }
+    },
+    {
+      "id": "ME54",
+      "category": "strict_contrast",
+      "title": "Pre-ictal C inside the quiet window",
+      "note": "A clonic-looking interval lies inside the 10 s no-event prefix. Base is unaffected; strict fails □10∅.",
+      "relation_focus": {
+        "pre_ictal": "C=[31,33] intersects (30,40)"
+      },
+      "events": {
+        "S": [
+          [
+            40,
+            95
+          ]
+        ],
+        "T": [
+          [
+            40,
+            55
+          ]
+        ],
+        "C": [
+          [
+            31,
+            33
+          ],
+          [
+            60,
+            92
+          ]
+        ],
+        "P": [
+          [
+            95,
+            140
+          ]
+        ]
+      },
+      "expected": {
+        "shouldMatch": true,
+        "minPatterns": 1,
+        "reason": "Base uses the in-seizure C=[60,92] and ignores the earlier C."
+      },
+      "expected_strict": {
+        "shouldMatch": false,
+        "reason": "The prefix [30,40) intersects C=[31,33]."
+      }
+    }
+  ],
+  "evaluation_instructions": {
+    "goal": "Check whether the query result accurately expresses the meaning of the PGES formula.",
+    "what_to_verify": [
+      "Base PGES: for valid cases, is there at least one witness with correct x,a,b,c?",
+      "Base PGES: do the used intervals match the expected relation (e.g. P covers the seizure offset and extends for c seconds, even if the P interval began earlier)?",
+      "Strict PGES: every strict match should also be a base match, and all five strict conjuncts must hold at one witness.",
+      "Strict PGES: for each rejection, identify which conjunction fails: the 10 s no-event prefix, S∧¬P, T∧¬C, C∧¬T, or P∧¬S.",
+      "Strict PGES: overlap is allowed when T∧¬C and C∧¬T each have a point; postictal T/C is allowed because only S is excluded; c may end before the full P interval.",
+      "Are wrong temporal relations and labeling errors correctly rejected by the intended query?",
+      "Does multi-episode counting match patterns vs patients?",
+      "Does changing the c >= n filter behave correctly?",
+      "Does the support trace show all five strict conjuncts satisfied for a match?"
+    ],
+    "notes": "There is one evaluation set, not separate base/strict datasets. Both query formulas are applied to every case. The page reports expected agreement at c >= 0; both base and strict should read 54/54. Then inspect individual witnesses and conjunct failures."
+  },
+  "strict_quiet_seconds": 10,
+  "queries": {
+    "base": {
+      "name": "PGES base",
+      "expr": "∃x∃a∃b∃c [ □_{a+b}S ∧ ◊_{a}T ∧ (◊_{b}C)_{a} ∧ (□_{c}P)_{a+b} ]x",
+      "semantics": "Permissive reference query. T and C only need to occur in their windows, so their intervals may overlap or extend outside S, and P may begin before the seizure offset."
+    },
+    "strict": {
+      "name": "PGES strict",
+      "expr": "∃x ∃a ∃b ∃c [ □_{10}∅ ∧ (□_{a+b}(S ∧ ¬P))_{10} ∧ (◊_{a}(T ∧ ¬C))_{10} ∧ (◊_{b}(C ∧ ¬T))_{10+a} ∧ (□_{c}(P ∧ ¬S))_{10+a+b} ]_x",
+      "quiet_seconds": 10,
+      "semantics": "All conditions are inside the formula. ∅ means no S/T/C/P event. Strict evaluation treats event intervals as half-open, so adjacent boundaries meet rather than overlap. c is any positive run of P∧¬S; the playground uses the maximal run and then applies the c filter. T and C may overlap as long as T∧¬C and C∧¬T each have a witness, and postictal T/C is allowed because the final conjunct excludes S, not all events."
+    }
+  }
+}
