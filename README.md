@@ -16,7 +16,7 @@ Open:
 - <http://localhost:8123/qel-playground.html> — interactive cohort playground
 - <http://localhost:8123/qel-algorithm.html> — Algorithms 1–3 walkthrough
 
-`file://` works for basic viewing, but browsers block the playground's dataset fetch there; serve the root folder over HTTP or use **Choose JSON** to load `pges-manual-eval.json` manually. There is no build step, package install, CDN dependency, or backend requirement.
+`file://` works for basic viewing, but browsers block the playground's dataset fetch there; serve the folder over HTTP or use **Choose JSON** to load `pges-manual-eval.json` manually. There is no build step, package install, CDN dependency, or backend requirement.
 
 ## Files
 
@@ -40,7 +40,7 @@ Open:
 - The permissive base PGES formula and the exact strict PGES formula.
 - Worked P01 witness and timeline.
 - Mapping of interval primitives to backend functions in `eeg_query_api.rs`.
-- Evaluation-set counts and inspection workflow.
+- Current 54-case evaluation counts (base 47 patterns/43 patients, strict 36/33) and inspection workflow.
 
 ### Playground
 
@@ -115,5 +115,5 @@ Numeric comparisons use `EPS = 1e-6` and `TOL = 1e-9`. They are not exact ration
 - `cases[]`: 54 cases, each with `events`, `expected`, and `expected_strict`.
 - `strict_quiet_seconds`: `10`.
 
-At `c >= 0`, both formulas should agree with every expected case. The playground starts with 47 base patterns among 43 patients, 36 strict patterns among 33 patients, and 11 base-only patterns among 10 patients. It reports patient and pattern counts separately. The set is synthetic and is not the paper's clinical cohort.
+At `c >= 0`, both formulas should agree with every expected case. The playground starts with 47 base patterns among 43 patients, 36 strict patterns among 33 patients, and 11 base-only patterns; 10 cases have no strict match. It reports patient and pattern counts separately. The set is synthetic and is not the paper's clinical cohort.
 

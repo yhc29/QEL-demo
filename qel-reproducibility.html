@@ -187,6 +187,9 @@
   tr:last-child td { border-bottom: 0; }
   td code, th code { font-size: 12.5px; background: #f2eee7; padding: 2px 5px; border-radius: 5px; }
   .mono-note { color: var(--muted); font-size: 12.5px; }
+  .static-eval-table th:first-child, .static-eval-table td:first-child { white-space: nowrap; }
+  .static-eval-meta .eval-c::before { content: " · "; }
+  .static-eval-meta .eval-c { white-space: nowrap; }
   .code-block {
     overflow-x: auto; margin: 0; padding: 20px 22px; border-radius: 14px;
     background: #1c252e; color: #dbe5ee; font-size: 12.5px; line-height: 1.7;
@@ -462,6 +465,11 @@
     .section-head { display: block; }
     .section-head p { margin-top: 10px; }
     .result-grid { grid-template-columns: 1fr; }
+    .static-eval-table { font-size: 13px; }
+    .static-eval-table th, .static-eval-table td { padding: 10px 9px; }
+    .static-eval-table th { font-size: 10px; }
+    .static-eval-meta .eval-c { display: block; }
+    .static-eval-meta .eval-c::before { content: ""; }
     .formula { padding: 22px 18px; }
   }
 
@@ -526,7 +534,7 @@
     <div class="stat"><strong>15.97 s</strong><span>reported evaluation time</span></div>
     <div class="stat-note">
       Paper-reported illustrative feasibility run (Figure 3). The paper explicitly treats these values as an
-      end-to-end workflow result, not a systems benchmark.
+      end-to-end workflow result, not a systems benchmark. The current 54-case browser check is reported <a href="#static-eval-title">separately below</a>.
     </div>
   </div>
 
@@ -546,8 +554,8 @@
       </article>
       <article class="card">
         <span class="tag">Executable here</span>
-        <h3>Ten-record synthetic BEST + browser model checker</h3>
-        <p>The companion playground embeds a small static BEST dataset and evaluates the same QEL formulas with endpoint arithmetic and finite boundary-derived witnesses.</p>
+        <h3>54-case synthetic BEST + browser model checker</h3>
+        <p>The companion playground loads the versioned 54-case evaluation set from <code>pges-manual-eval.json</code> and evaluates the same QEL formulas with endpoint arithmetic and finite boundary-derived witnesses. At <code>c ≥ 0</code> it finds 47 base patterns in 43 patients and 36 strict patterns in 33; both formulas agree with all 54 expected outcomes.</p>
       </article>
       <article class="card">
         <span class="tag amber">Not shipped</span>
@@ -624,7 +632,7 @@
               </div>
             </div>
           </div>
-          <div class="timeline-caption"><span>Illustrative record P01, used again in the playground</span><span>closed annotation intervals · seconds</span></div>
+          <div class="timeline-caption"><span>Illustrative record P01, also used in the algorithm trace</span><span>closed annotation intervals · seconds</span></div>
         </div>
       </div>
       <aside>
@@ -994,7 +1002,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
 
     <div class="callout teal" style="margin-top:18px">
       <span class="mark" aria-hidden="true">↗</span>
-      <div><strong>One evaluation set, two query formulas</strong>The paper's formula is the permissive reference. The playground applies one exact strict formula to the same cases: <code>∃x∃a∃b∃c [□<sub>10</sub>∅ ∧ (□<sub>a+b</sub>(S∧¬P))<sub>10</sub> ∧ (◊<sub>a</sub>(T∧¬C))<sub>10</sub> ∧ (◊<sub>b</sub>(C∧¬T))<sub>10+a</sub> ∧ (□<sub>c</sub>(P∧¬S))<sub>10+a+b</sub>]<sub>x</sub></code>. The exclusions are inside the formula: T/C may overlap when each exclusion has a witness, postictal T/C is allowed because the last conjunct excludes S, not T or C, and c may end before P does. Both counts are shown side by side.</div>
+      <div><strong>One evaluation set, two query formulas</strong>The paper's formula is the permissive reference. The playground applies one exact strict formula to the same cases: <code>∃x∃a∃b∃c [□<sub>10</sub>∅ ∧ (□<sub>a+b</sub>(S∧¬P))<sub>10</sub> ∧ (◊<sub>a</sub>(T∧¬C))<sub>10</sub> ∧ (◊<sub>b</sub>(C∧¬T))<sub>10+a</sub> ∧ (□<sub>c</sub>(P∧¬S))<sub>10+a+b</sub>]<sub>x</sub></code>. The exclusions are inside the formula: T/C may overlap when each exclusion has a witness, postictal T/C is allowed because the last conjunct excludes S, not T or C, and c may end before P does. Base, strict, and base-only counts are shown side by side.</div>
     </div>
 
     <div class="grid-2" style="margin-top:18px">
@@ -1037,17 +1045,38 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       <div class="result-card"><strong>15.97 s</strong><span>reported runtime</span></div>
     </div>
 
+    <article class="card" style="margin-top:18px" aria-labelledby="static-eval-title">
+      <div class="section-head" style="margin-bottom:16px">
+        <div>
+          <span class="tag">Current static evaluation</span>
+          <h3 id="static-eval-title" style="margin-top:12px">54 synthetic cases, two formulas</h3>
+        </div>
+        <p class="mono-note static-eval-meta">pges-manual-evaluation v3.0.0<span class="eval-c">c ≥ 0 s</span></p>
+      </div>
+      <div class="table-wrap">
+        <table class="static-eval-table">
+          <thead><tr><th>Query</th><th>Matched patterns</th><th>Patients matched (of 54)</th></tr></thead>
+          <tbody>
+            <tr><td>PGES base</td><td><strong>47</strong></td><td><strong>43</strong></td></tr>
+            <tr><td>PGES strict</td><td><strong>36</strong></td><td><strong>33</strong></td></tr>
+            <tr><td>Base only</td><td><strong>11</strong></td><td><strong>10</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:14px">Both formulas match all 54 expected outcomes at <code>c ≥ 0</code>. At <code>c ≥ 20</code>, base falls to 42 patterns across 39 patients and strict to 29 across 27. <strong>Base only</strong> reports 11 patterns matched by base but not strict; its patient column counts the 10 cases with no strict match. The optimized and finite-cell solver paths return the same counts.</p>
+    </article>
+
     <div class="grid-2" style="margin-top:18px">
       <article class="card">
         <span class="tag">Reading the result</span>
         <h3>Patients and patterns are different counts</h3>
         <p>A patient is included once, but can contribute more than one matched annotation pattern. The paper reports <strong>37 patients</strong> and <strong>45 patterns</strong>, so some records contain multiple qualifying seizure/suppression configurations.</p>
-        <p style="margin-top:12px">The interface in Figure 3 returns the patient list and visualizes each matched pattern on a time-aligned axis. This is the same distinction the playground makes when it counts matched patients separately from matched seizure episodes.</p>
+        <p style="margin-top:12px">The interface in Figure 3 returns the patient list and visualizes each matched pattern on a time-aligned axis. This is the same distinction the playground makes when it counts matched patients separately from matched patterns.</p>
       </article>
       <article class="card">
         <span class="tag amber">Reproducibility boundary</span>
         <h3>What these numbers do and do not certify</h3>
-        <p>They certify the paper's end-to-end workflow on its clinical database. They do not certify the static demo, which uses ten synthetic records. The demo is intended to make the semantics inspectable and executable, not to reproduce the clinical cohort or its runtime.</p>
+        <p>They certify the paper's end-to-end workflow on its clinical database. They do not certify the static demo, which uses 54 synthetic records. The demo is intended to make the semantics inspectable and executable, not to reproduce the clinical cohort or its runtime.</p>
         <p style="margin-top:12px">The paper itself describes the 15.97 s result as an illustrative feasibility result rather than a systems benchmark. Query planning, indexing, and comparison with hand-written database queries are left to a companion study.</p>
       </article>
     </div>
@@ -1056,7 +1085,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       <article class="card">
         <span class="tag">Run it locally</span>
         <h3>From this page to the playground</h3>
-        <p>Open <a href="qel-playground.html">the companion playground</a>. It contains ten built-in records plus a 54-case manual evaluation set, GTC/PGES base/PGES strict presets, a suppression-duration filter, a Solver selector for the optimized or paper finite-cell path, and an audit panel that shows the witness and the support checks for every match.</p>
+        <p>Open <a href="qel-playground.html">the companion playground</a>. It loads the 54-case evaluation set by default and accepts another JSON file in the same format. It also provides GTC/PGES base/PGES strict presets, a suppression-duration filter, a solver selector for the optimized or paper finite-cell path, and an audit panel that shows the witness and support checks for every match.</p>
         <pre class="code-block" style="margin-top:14px"><span class="c"># serve the static pages locally</span>
 cd docs
 python3 -m http.server 8080
@@ -1084,7 +1113,7 @@ python3 -m http.server 8080
   <div class="wrap footer-inner">
     <div>
       Static reproducibility artifact for the QEL / BEST paper. No external dependencies.
-      <br>Paper-reported clinical statistics are cited, not recomputed here.
+      <br>Paper-reported clinical statistics are cited; the 54-case browser check is recomputed locally.
     </div>
     <div class="footer-links">
       <a href="qel-playground.html">Playground</a>
