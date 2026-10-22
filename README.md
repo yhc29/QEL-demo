@@ -7,7 +7,7 @@ Standalone browser documentation and demos for the QEL/PGES temporal query engin
 From the repository root:
 
 ```bash
-python3 -m http.server 8123 --directory docs
+python3 -m http.server 8123 --directory ./
 ```
 
 Open:
@@ -16,7 +16,7 @@ Open:
 - <http://localhost:8123/qel-playground.html> — interactive cohort playground
 - <http://localhost:8123/qel-algorithm.html> — Algorithms 1–3 walkthrough
 
-`file://` works for basic viewing, but browsers block the playground's dataset fetch there; serve the docs folder over HTTP or use **Choose JSON** to load `pges-manual-eval.json` manually. There is no build step, package install, CDN dependency, or backend requirement.
+`file://` works for basic viewing, but browsers block the playground's dataset fetch there; serve the root folder over HTTP or use **Choose JSON** to load `pges-manual-eval.json` manually. There is no build step, package install, CDN dependency, or backend requirement.
 
 ## Files
 
