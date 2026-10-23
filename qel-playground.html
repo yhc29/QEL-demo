@@ -624,9 +624,9 @@
           <label class="panel-label" for="solverMode">Solver</label>
           <select id="solverMode" class="solver-select">
             <option value="optimized" selected>Optimized witness search</option>
-            <option value="paper">Paper finite-cell (Algorithm 3)</option>
+            <option value="paper">Paper boundary scan (Algorithm 3)</option>
           </select>
-          <span class="solver-hint" id="solverHint">Fast endpoint candidates.</span>
+          <span class="solver-hint" id="solverHint">Observed interval boundaries only.</span>
         </div>
         <div class="eval-row">
           <span class="panel-label">Evaluation set</span>
@@ -737,7 +737,7 @@
       </article>
       <article class="explain-card">
         <h3>Finite witnesses, not sampling</h3>
-        <p>For each seizure episode the demo enumerates boundary-derived candidates for x, a, b, and c, then verifies every candidate with the interval semantics. Use the Solver selector to compare the optimized witness search with the paper finite-cell path. <a href="qel-algorithm.html">See the step-by-step algorithm trace →</a></p>
+        <p>For each seizure episode the demo draws the candidate points for x, a, b, and c only from interval boundaries already present in the case, then verifies every candidate with the interval semantics. No midpoint or epsilon-shifted candidates and no random sampling are used. Use the Solver selector to compare the optimized witness search with the paper boundary scan. <a href="qel-algorithm.html">See the step-by-step algorithm trace →</a></p>
       </article>
       <article class="explain-card">
         <h3>Two formulas, one evaluation set</h3>
@@ -964,8 +964,8 @@
     const query = currentQuery();
     if (els.solverHint) {
       els.solverHint.textContent = query.solver === "paper"
-        ? "Finite-cell representatives; mirrors Algorithm 3."
-        : "Fast endpoint candidates; same semantics.";
+        ? "Observed boundary quadruples; mirrors Algorithm 3."
+        : "Observed interval boundaries only; same semantics.";
     }
     state.results = evaluateQuery(query);
     state.comparison = {

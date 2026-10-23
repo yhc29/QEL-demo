@@ -555,7 +555,7 @@
       <article class="card">
         <span class="tag">Executable here</span>
         <h3>54-case synthetic BEST + browser model checker</h3>
-        <p>The companion playground loads the versioned 54-case evaluation set from <code>pges-manual-eval.json</code> and evaluates the same QEL formulas with endpoint arithmetic and finite boundary-derived witnesses. At <code>c ≥ 0</code> it finds 47 base patterns in 43 patients and 36 strict patterns in 33; both formulas agree with all 54 expected outcomes.</p>
+        <p>The companion playground loads the versioned 54-case evaluation set from <code>pges-manual-eval.json</code> and evaluates the same QEL formulas with endpoint arithmetic and witnesses drawn only from observed interval boundaries. At <code>c ≥ 0</code> it finds 47 base patterns in 43 patients and 36 strict patterns in 33; both formulas agree with all 54 expected outcomes.</p>
       </article>
       <article class="card">
         <span class="tag amber">Not shipped</span>
@@ -865,7 +865,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       <div class="flow-step"><div class="step-n">Step 01</div><h3>Load annotations</h3><p>Convert a recording session into a BEST: one interval ensemble per clinical label.</p></div>
       <div class="flow-step"><div class="step-n">Step 02</div><h3>Compile the formula</h3><p>Translate displacement, ◊, □, and Boolean operators into interval transformations.</p></div>
       <div class="flow-step"><div class="step-n">Step 03</div><h3>Evaluate supports</h3><p>Compute the interval ensemble for the quantifier-free body under a candidate assignment.</p></div>
-      <div class="flow-step"><div class="step-n">Step 04</div><h3>Find finite witnesses</h3><p>Use endpoints, constants, and boundary-derived representatives instead of searching dense ℚ.</p></div>
+      <div class="flow-step"><div class="step-n">Step 04</div><h3>Find finite witnesses</h3><p>Use only the interval endpoints already present in the record instead of searching dense ℚ.</p></div>
       <div class="flow-step"><div class="step-n">Step 05</div><h3>Project the cohort</h3><p>Include the record if a witness makes the body true; aggregate patients and matched patterns.</p></div>
     </div>
 
@@ -1063,7 +1063,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
           </tbody>
         </table>
       </div>
-      <p style="margin-top:14px">Both formulas match all 54 expected outcomes at <code>c ≥ 0</code>. At <code>c ≥ 20</code>, base falls to 42 patterns across 39 patients and strict to 29 across 27. <strong>Base only</strong> reports 11 patterns matched by base but not strict; its patient column counts the 10 cases with no strict match. The optimized and finite-cell solver paths return the same counts.</p>
+      <p style="margin-top:14px">Both formulas match all 54 expected outcomes at <code>c ≥ 0</code>. At <code>c ≥ 20</code>, base falls to 42 patterns across 39 patients and strict to 29 across 27. <strong>Base only</strong> reports 11 patterns matched by base but not strict; its patient column counts the 10 cases with no strict match. The optimized and paper boundary-scan solver paths return the same counts.</p>
     </article>
 
     <div class="grid-2" style="margin-top:18px">
@@ -1085,7 +1085,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       <article class="card">
         <span class="tag">Run it locally</span>
         <h3>From this page to the playground</h3>
-        <p>Open <a href="qel-playground.html">the companion playground</a>. It loads the 54-case evaluation set by default and accepts another JSON file in the same format. It also provides GTC/PGES base/PGES strict presets, a suppression-duration filter, a solver selector for the optimized or paper finite-cell path, and an audit panel that shows the witness and support checks for every match.</p>
+        <p>Open <a href="qel-playground.html">the companion playground</a>. It loads the 54-case evaluation set by default and accepts another JSON file in the same format. It also provides GTC/PGES base/PGES strict presets, a suppression-duration filter, a solver selector for the optimized or paper boundary-scan path, and an audit panel that shows the witness and support checks for every match.</p>
         <pre class="code-block" style="margin-top:14px"><span class="c"># serve the static pages locally</span>
 cd docs
 python3 -m http.server 8080

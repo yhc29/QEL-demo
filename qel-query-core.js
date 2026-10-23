@@ -194,27 +194,17 @@
   }
 
   function strictACandidates(T, C, P, s0, R) {
-    const values = new Set([EPS, R - EPS, R / 2]);
+    const values = new Set();
     const add = v => {
-      if (v > EPS / 2 && v < R - EPS / 2) values.add(+v.toFixed(6));
+      if (Number.isFinite(v) && v > TOL && v < R - TOL) values.add(v);
     };
     for (const IE of [T, C, P]) {
       for (const i of IE) {
-        for (const endpoint of [i.a, i.b]) {
-          add(endpoint - s0);
-          add(endpoint - s0 + EPS);
-          add(endpoint - s0 - EPS);
-        }
+        add(i.a - s0);
+        add(i.b - s0);
       }
     }
-    const sorted = [...values].sort((p, q) => p - q);
-    const out = [...sorted];
-    for (let i = 0; i < sorted.length - 1; i++) {
-      out.push(+((sorted[i] + sorted[i + 1]) / 2).toFixed(6));
-    }
-    return [...new Set(out)]
-      .filter(v => v > EPS / 2 && v < R - EPS / 2)
-      .sort((p, q) => p - q);
+    return [...values].sort((p, q) => p - q);
   }
 
   function firstPointIn(IE, lo, hi) {
@@ -259,7 +249,7 @@
     const matches = [];
     for (let si = 0; si < S.length; si++) {
       const sIv = S[si];
-      const s0 = sIv.lc ? sIv.a : sIv.a + EPS;
+      const s0 = sIv.a;
       const e0 = sIv.b;
       const R = e0 - s0;
       if (R <= EPS * 2) continue;
@@ -307,7 +297,7 @@
     const P = record.supports.P || [];
     const sIv = S[si];
     if (!sIv) return null;
-    const x = sIv.lc ? sIv.a : sIv.a + EPS;
+    const x = sIv.a;
     if (!contains(S, x)) return null;
     const sEnd = componentEnd(S, x);
     if (sEnd == null) return null;
@@ -342,27 +332,21 @@
     return null;
   }
 
-  function finiteCellPoints(record, labels) {
+  function boundaryPoints(record, labels) {
     const values = [];
     for (const label of labels) {
       for (const i of record.supports[label] || []) values.push(i.a, i.b);
     }
     const sorted = values.filter(Number.isFinite).sort((p, q) => p - q);
-    const bounds = [];
+    const out = [];
     for (const v of sorted) {
-      if (!bounds.length || Math.abs(v - bounds[bounds.length - 1]) > TOL * 10) bounds.push(v);
+      if (!out.length || Math.abs(v - out[out.length - 1]) > TOL * 10) out.push(v);
     }
-    if (!bounds.length) return [];
-    const out = [bounds[0] - 1, bounds[bounds.length - 1] + 1];
-    for (const v of bounds) out.push(v - EPS, v, v + EPS);
-    for (let i = 0; i < bounds.length - 1; i++) {
-      const d = bounds[i + 1] - bounds[i];
-      if (d > TOL * 10) {
-        for (let k = 1; k <= 3; k++) out.push(bounds[i] + d * k / 4);
-      }
-    }
-    out.sort((p, q) => p - q);
-    return out.filter((v, i) => i === 0 || Math.abs(v - out[i - 1]) > TOL * 10);
+    return out;
+  }
+
+  function finiteCellPoints(record, labels) {
+    return boundaryPoints(record, labels);
   }
 
   function componentIndex(IE, point) {
@@ -398,16 +382,14 @@
       if (sEnd == null) continue;
       const tNext = nextPoint(T, anchor);
       if (tNext == null) continue;
-      const yCandidates = points.concat([anchor + EPS, anchor + 2 * EPS, anchor + 3 * EPS]);
 
-      for (const y of yCandidates) {
+      for (const y of points) {
         if (!(y > anchor + TOL)) continue;
         if (tNext >= y - TOL) continue;
         const a = y - anchor;
         if (!(a > EPS / 2)) continue;
-        const zCandidates = points.concat([y + EPS, y + 2 * EPS, y + 3 * EPS]);
 
-        for (const z of zCandidates) {
+        for (const z of points) {
           if (!(z > y + TOL) || z > sEnd + TOL) continue;
           const b = z - y;
           if (!(b > EPS / 2)) continue;
@@ -467,77 +449,39 @@
     const cMin = query.cMin || 0;
     const strict = !!query.strict;
     const S = record.supports.S || [];
-    const T = record.supports.T || [];
-    const C = record.supports.C || [];
     const P = record.supports.P || [];
     if (strict && kind === "pges") return findStrictMatches(record, query);
     const matches = [];
+    const points = boundaryPoints(record, ["S", "T", "C", "P"]);
 
     for (let si = 0; si < S.length; si++) {
       const sIv = S[si];
-      const x = sIv.lc ? sIv.a : sIv.a + EPS;
-      if (!contains(S, x)) continue;
+      const x = points.find(p => p >= sIv.a - TOL && p <= sIv.b + TOL && contains([sIv], p));
+      if (x == null) continue;
 
       const pref = preferredWitness(record, kind, cMin, si);
       if (pref) { matches.push(pref); continue; }
 
       const sEnd = componentEnd(S, x);
       if (sEnd == null) continue;
-      const R = sEnd - x;
-      if (R <= EPS) continue;
 
-      const tNext = nextPoint(T, x);
-      if (tNext == null) continue;
-
-      const aMin = Math.max(EPS, tNext - x + EPS);
-      const aSet = new Set();
-      const addA = v => {
-        if (Number.isFinite(v) && v > EPS / 2 && v < R - EPS / 2) aSet.add(+v.toFixed(6));
-      };
-      addA(EPS);
-      addA(aMin);
-      addA(R - EPS);
-      addA((aMin + R) / 2);
-      for (const cv of C) {
-        addA(cv.a - x + EPS);
-        addA(cv.a - x - EPS);
-        addA(cv.b - x + EPS);
-        addA(cv.b - x - EPS);
-      }
-
-      const as = [...aSet].sort((p, q) => p - q);
       let found = false;
-      for (const a of as) {
+      for (const y of points) {
         if (found) break;
-        const cStart = x + a;
-        const cNext = nextPoint(C, cStart);
-        if (cNext == null) continue;
-        const bMin = Math.max(EPS, cNext - cStart + EPS);
-        const maxB = R - a;
-        if (bMin > maxB + EPS) continue;
+        if (!(y > x + TOL)) continue;
+        if (y > sEnd + TOL) break;
+        const a = y - x;
+        if (!(a > EPS / 2)) continue;
 
-        const bSet = new Set();
-        const addB = v => {
-          if (Number.isFinite(v) && v > EPS / 2 && v <= maxB + EPS / 2) bSet.add(+v.toFixed(6));
-        };
-        addB(bMin);
-        addB(maxB);
-        addB((bMin + maxB) / 2);
-        if (kind === "pges") {
-          for (const pv of P) {
-            addB(pv.a - cStart + EPS);
-            addB(pv.a - cStart - EPS);
-            addB(pv.b - cStart - EPS);
-            addB(pv.b - cStart + EPS);
-          }
-        }
+        for (const z of points) {
+          if (found) break;
+          if (!(z > y + TOL) || z > sEnd + TOL) continue;
+          const b = z - y;
+          if (!(b > EPS / 2)) continue;
 
-        const bs = [...bSet].sort((p, q) => p - q);
-        for (const b of bs) {
-          const y = cStart + b;
           let c = null;
           if (kind === "pges") {
-            const room = pRoom(P, y);
+            const room = pRoom(P, z);
             if (room == null) continue;
             if (cMin > 0 && room + EPS < cMin) continue;
             c = room;
@@ -547,10 +491,8 @@
           const sup = support(body, env, record);
           if (contains(sup, x)) {
             const used = findUsed(record, x, a, b, c, kind);
-            const candidate = { patientId: record.id, sIndex: si, x, a, b, c, y, used, support: sup, preferred: false };
-            matches.push(candidate);
+            matches.push({ patientId: record.id, sIndex: si, x, a, b, c, y: z, used, support: sup, preferred: false });
             found = true;
-            break;
           }
         }
       }
@@ -599,6 +541,7 @@
     findStrictMatches,
     preferredWitness,
     findMatches,
+    boundaryPoints,
     finiteCellPoints,
     findMatchesFiniteCell
   });

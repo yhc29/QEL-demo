@@ -51,8 +51,8 @@ Open:
 - Presets: GTC, PGES base, PGES strict.
 - `c >= n` witness filter for suppression duration.
 - Solver selector:
-  - **Optimized witness search** — endpoint-derived candidates verified with interval support.
-  - **Paper finite-cell (Algorithm 3)** — finite-cell style candidate generation, also verified with interval support.
+  - **Optimized witness search** — observed interval-boundary candidates verified with interval support.
+  - **Paper boundary scan (Algorithm 3)** — the same observed boundaries enumerated as ordered points, also verified with interval support.
 - Audit panel with the selected witness, per-conjunct checks, and matched pattern details.
 - Results table that reports matched patterns and patients separately for base, strict, and base-only queries.
 
@@ -98,11 +98,12 @@ A candidate is accepted when the formula support contains the reference point `x
 
 | Function | Role |
 | --- | --- |
-| `findMatches(record, query)` | Optimized endpoint-candidate search used by default. |
-| `findMatchesFiniteCell(record, query)` | Paper finite-cell path, using `finiteCellPoints` candidates. |
-| `finiteCellPoints(record, labels)` | Builds affine boundary candidates for Algorithm 3. |
+| `findMatches(record, query)` | Optimized boundary-candidate search used by default. |
+| `findMatchesFiniteCell(record, query)` | Paper boundary scan using `finiteCellPoints` candidates. |
+| `boundaryPoints(record, labels)` | Returns the sorted, unique interval endpoints already present in the record. |
+| `finiteCellPoints(record, labels)` | Backward-compatible alias for `boundaryPoints` in Algorithm 3. |
 
-Both paths use the same `support` verifier. The finite-cell path is a specialized Algorithm 3 implementation, not a generic quantifier-elimination engine.
+Both paths use the same `support` verifier and draw their candidate `x`/`a`/`b`/`c` values only from observed interval boundaries. They do not use midpoint candidates, epsilon-shifted candidates, or random sampling. In the strict formula, `x` is derived as the S start minus the fixed 10 s quiet prefix; the S/T/C/P window boundaries still come from the record.
 
 Numeric comparisons use `EPS = 1e-6` and `TOL = 1e-9`. They are not exact rational arithmetic, so filtering very close to a boundary can differ by a tolerance-scale amount.
 
