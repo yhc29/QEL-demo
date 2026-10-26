@@ -107,14 +107,294 @@
   /* ---------- QEL expression AST ---------- */
   const V = name => ({ type: "var", name });
   const add = (left, right) => ({ type: "add", left, right });
+  const sub = (left, right) => ({ type: "sub", left, right });
   const A = label => ({ type: "atom", label });
   const box = (t, child) => ({ type: "box", t, child });
   const dia = (t, child) => ({ type: "diamond", t, child });
+  const boxNeg = (t, child) => ({ type: "box_neg", t, child });
+  const diaNeg = (t, child) => ({ type: "diamond_neg", t, child });
   const shift = (u, child) => ({ type: "shift", u, child });
   const and = (left, right) => ({ type: "and", left, right });
   const or = (left, right) => ({ type: "or", left, right });
   const not = child => ({ type: "not", child });
   const NOEVENT = { type: "noevent" };
+
+  /* Parse the small, data-only QEL surface syntax used by custom queries.
+     Example: shift(a, diamond(b, and(T, neg(C)))) */
+  function parseFormulaString(source) {
+    if (typeof source !== "string" || !source.trim()) throw new Error("Formula must be a non-empty string");
+    const tokens = source.match(/[A-Za-z_][A-Za-z0-9_]*|(?:\d+(?:\.\d*)?|\.\d+)|[()+,\-]/g) || [];
+    const compact = source.replace(/\s+/g, "");
+    if (tokens.join("") !== compact) throw new Error("Formula contains unsupported characters");
+    let index = 0;
+    const peek = () => tokens[index];
+    const take = expected => {
+      const token = tokens[index++];
+      if (expected && token !== expected) throw new Error(`Expected '${expected}' in formula`);
+      return token;
+    };
+    function factor() {
+      if (peek() === "-") { take("-"); return sub(0, factor()); }
+      if (peek() === "(") { take("("); const value = term(); take(")"); return value; }
+      const token = take();
+      if (token == null || !/^(?:[A-Za-z_][A-Za-z0-9_]*|\d+(?:\.\d*)?|\.\d+)$/.test(token)) {
+        throw new Error("Expected a time term");
+      }
+      return /^\d/.test(token) || token[0] === "." ? Number(token) : V(token);
+    }
+    function term() {
+      let node = factor();
+      while (peek() === "+" || peek() === "-") {
+        const operation = take();
+        node = operation === "+" ? add(node, factor()) : sub(node, factor());
+      }
+      return node;
+    }
+    function expr() {
+      const name = take();
+      if (peek() !== "(") {
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) throw new Error(`Invalid event atom '${name}'`);
+        if (name === "noevent") return NOEVENT;
+        return A(name);
+      }
+      take("(");
+      if (name === "neg" || name === "not") { const child = expr(); take(")"); return not(child); }
+      if (name === "and" || name === "or") {
+        const left = expr(); take(","); const right = expr(); take(")");
+        return name === "and" ? and(left, right) : or(left, right);
+      }
+      if (["box", "diamond", "dia", "box_neg", "diamond_neg"].includes(name)) {
+        const duration = term(); take(","); const child = expr(); take(")");
+        if (name === "box") return box(duration, child);
+        if (name === "box_neg") return boxNeg(duration, child);
+        if (name === "diamond_neg") return diaNeg(duration, child);
+        return dia(duration, child);
+      }
+      if (name === "shift") {
+        const amount = term(); take(","); const child = expr(); take(")");
+        return shift(amount, child);
+      }
+      throw new Error(`Unknown formula operator '${name}'`);
+    }
+    const ast = expr();
+    if (index !== tokens.length) throw new Error(`Unexpected token '${peek()}'`);
+    return ast;
+  }
+
+  function formulaToString(input) {
+    const node = typeof input === "string" ? parseFormulaString(input) : input;
+    function term(value) {
+      if (typeof value === "number") return String(value);
+      if (value.type === "var") return value.name;
+      const sign = value.type === "sub" ? "-" : "+";
+      return `(${term(value.left)}${sign}${term(value.right)})`;
+    }
+    function expr(value) {
+      if (value.type === "atom") return value.label;
+      if (value.type === "noevent") return "noevent";
+      if (value.type === "not") return `neg(${expr(value.child)})`;
+      if (value.type === "and" || value.type === "or") {
+        return `${value.type}(${expr(value.left)},${expr(value.right)})`;
+      }
+      if (["box", "diamond", "box_neg", "diamond_neg", "shift"].includes(value.type)) {
+        return `${value.type}(${term(value.t ?? value.u)},${expr(value.child)})`;
+      }
+      throw new Error(`Unknown formula node '${value.type}'`);
+    }
+    return expr(node);
+  }
+
+  // A single AST produces both the functional query string and display markup.
+  function formatFormula(input) {
+    const ast = typeof input === "string" ? parseFormulaString(input) : input;
+    const escape = value => String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+    function term(value, parent = null, rightSide = false) {
+      if (typeof value === "number") return escape(value);
+      if (value.type === "var") return escape(value.name);
+      const sign = value.type === "sub" ? "−" : "+";
+      const content = value.type === "sub" && value.left === 0
+        ? `−${term(value.right, value.type, true)}`
+        : `${term(value.left, value.type, false)}${sign}${term(value.right, value.type, true)}`;
+      return parent === "sub" && rightSide ? `(${content})` : content;
+    }
+    const parens = content => `<span class="paren">(</span>${content}<span class="paren">)</span>`;
+    function expr(value, parent = null) {
+      let content;
+      if (value.type === "atom") {
+        const eventClass = /^[STCP]$/.test(value.label) ? ` ${value.label.toLowerCase()}` : "";
+        content = `<span class="ev${eventClass}">${escape(value.label)}</span>`;
+      } else if (value.type === "noevent") {
+        content = '<span class="ev empty">∅</span>';
+      } else if (value.type === "not") {
+        content = `<span class="op">¬</span>${expr(value.child, "unary")}`;
+      } else if (["box", "diamond", "box_neg", "diamond_neg"].includes(value.type)) {
+        const symbol = value.type.startsWith("box") ? "□" : "◊";
+        const negation = value.type.endsWith("_neg") ? '<span class="op">¬</span>' : "";
+        content = `<span class="op">${symbol}</span><sub>${term(value.t)}</sub>${negation}${expr(value.child, "unary")}`;
+      } else if (value.type === "shift") {
+        content = `${parens(expr(value.child))}<sub>${term(value.u)}</sub>`;
+      } else if (value.type === "and" || value.type === "or") {
+        const symbol = value.type === "and" ? "∧" : "∨";
+        content = `${expr(value.left, value.type)} <span class="op">${symbol}</span> ${expr(value.right, value.type)}`;
+      } else {
+        throw new Error(`Unknown formula node '${value.type}'`);
+      }
+      return (value.type === "and" || value.type === "or") && parent && parent !== value.type
+        ? parens(content) : content;
+    }
+    const variables = [...formulaVariables(ast)].filter(name => name !== "x");
+    const quantifiers = ["x", ...variables].map(name => `∃${escape(name)}`).join(" ");
+    return {
+      string: formulaToString(ast),
+      html: `<span class="q">${quantifiers}</span> <span class="br">[</span> ${expr(ast)} <span class="br">]</span><sub class="q">x</sub>`
+    };
+  }
+
+  function evaluateFormulaString(record, formulaString, env = {}) {
+    const expression = typeof formulaString === "string" ? parseFormulaString(formulaString) : formulaString;
+    return support(expression, env, record);
+  }
+
+  // Retained for callers that already provide concrete time values.
+  function findFormulaMatches(record, formulaString, env = {}, labels = ["S", "T", "C", "P"]) {
+    const formulaSupport = evaluateFormulaString(record, formulaString, env);
+    return boundaryPoints(record, labels).filter(x => contains(formulaSupport, x))
+      .map(x => ({ patientId: record.id, x, support: formulaSupport, env: { ...env } }));
+  }
+
+  function formulaVariables(node, out = new Set()) {
+    if (typeof node === "number") return out;
+    if (node.type === "var") out.add(node.name);
+    for (const key of ["t", "u", "left", "right", "child"]) {
+      if (node[key] != null) formulaVariables(node[key], out);
+    }
+    return out;
+  }
+
+  function formulaAtoms(node, out = new Set()) {
+    if (typeof node === "number") return out;
+    if (node.type === "atom") out.add(node.label);
+    for (const key of ["left", "right", "child"]) {
+      if (node[key] != null) formulaAtoms(node[key], out);
+    }
+    return out;
+  }
+
+  function formulaConjuncts(node) {
+    return node.type === "and"
+      ? [...formulaConjuncts(node.left), ...formulaConjuncts(node.right)]
+      : [node];
+  }
+
+  function durationVariables(node, out = new Set()) {
+    if (typeof node === "number") return out;
+    if (["box", "diamond", "box_neg", "diamond_neg"].includes(node.type)) formulaVariables(node.t, out);
+    for (const key of ["left", "right", "child"]) {
+      if (node[key] != null) durationVariables(node[key], out);
+    }
+    return out;
+  }
+
+  function queryRecord(caseData, useHalfOpen = false) {
+    if (!caseData || typeof caseData !== "object") throw new Error("Case must be an object");
+    const raw = caseData.supports || caseData.events;
+    if (!raw || typeof raw !== "object") throw new Error("Case must contain events or supports");
+    const supports = {};
+    for (const [label, intervals] of Object.entries(raw)) {
+      if (!Array.isArray(intervals)) throw new Error(`Invalid intervals for ${label}`);
+      supports[label] = norm(intervals.map(interval => {
+        const value = Array.isArray(interval)
+          ? iv(interval[0], interval[1]) : interval;
+        if (!value || !Number.isFinite(value.a) || !Number.isFinite(value.b) || value.a > value.b) {
+          throw new Error(`Invalid interval for ${label}`);
+        }
+        return iv(value.a, value.b, value.lc !== false, useHalfOpen ? false : value.rc !== false);
+      }));
+    }
+    return { id: caseData.id, supports };
+  }
+
+  function witnessPoint(IE, dataPoints) {
+    for (const point of dataPoints) if (contains(IE, point)) return point;
+    for (const interval of IE) {
+      if (Number.isFinite(interval.a)) {
+        if (contains(IE, interval.a)) return interval.a;
+        if (Number.isFinite(interval.b) && contains(IE, (interval.a + interval.b) / 2)) {
+          return (interval.a + interval.b) / 2;
+        }
+        if (contains(IE, interval.a + 1)) return interval.a + 1;
+      }
+      if (Number.isFinite(interval.b)) {
+        if (contains(IE, interval.b)) return interval.b;
+        if (contains(IE, interval.b - 1)) return interval.b - 1;
+      }
+      if (contains(IE, 0)) return 0;
+    }
+    return null;
+  }
+
+  // API for a single case: compile the string, derive finite time candidates
+  // from every event endpoint, and return a satisfying assignment if one exists.
+  function queryFormula(formulaString, caseData, options = {}) {
+    const expression = parseFormulaString(formulaString);
+    const record = queryRecord(caseData, options.halfOpen === true);
+    const labels = [...formulaAtoms(expression)];
+    const points = boundaryPoints(record, Object.keys(record.supports));
+    const variables = [...formulaVariables(expression)];
+    const positiveVariables = durationVariables(expression);
+    const durations = new Set();
+    for (const point of points) if (point > TOL) durations.add(point);
+    for (const left of points) for (const right of points) {
+      const difference = right - left;
+      if (difference > TOL) durations.add(difference);
+    }
+    const candidates = [...durations].sort((a, b) => a - b);
+    const signedCandidates = [...candidates].reverse().map(value => -value).concat([0], candidates);
+    const conjuncts = formulaConjuncts(expression).map(ast => ({
+      ast, variables: [...formulaVariables(ast)]
+    }));
+    const env = {};
+    let evaluated = 0;
+    const maxEvaluations = options.maxEvaluations == null ? 2000000 : options.maxEvaluations;
+    if (!Number.isSafeInteger(maxEvaluations) || maxEvaluations < 1) throw new Error("maxEvaluations must be a positive integer");
+    function visit(depth) {
+      if (depth === variables.length) {
+        const resultSupport = support(expression, env, record);
+        const x = witnessPoint(resultSupport, points);
+        return x == null ? null : { x, variables: { ...env }, support: resultSupport };
+      }
+      const variable = variables[depth];
+      for (const value of positiveVariables.has(variable) ? candidates : signedCandidates) {
+        evaluated++;
+        if (evaluated > maxEvaluations) throw new Error(`Query exceeded ${maxEvaluations} assignments`);
+        env[variable] = value;
+        let possible = true;
+        for (const conjunct of conjuncts) {
+          if (conjunct.variables.every(name => Object.hasOwn(env, name)) &&
+              witnessPoint(support(conjunct.ast, env, record), points) == null) {
+            possible = false;
+            break;
+          }
+        }
+        if (possible) {
+          const found = visit(depth + 1);
+          if (found) return found;
+        }
+      }
+      delete env[variable];
+      return null;
+    }
+    // Check constant conjuncts before searching any time variable.
+    for (const conjunct of conjuncts) {
+      if (!conjunct.variables.length && witnessPoint(support(conjunct.ast, env, record), points) == null) {
+        return { matched: false, caseId: record.id, atoms: labels, witness: null, evaluated: 0, candidateCount: candidates.length };
+      }
+    }
+    const witness = visit(0);
+    return { matched: !!witness, caseId: record.id, atoms: labels, witness, evaluated, candidateCount: candidates.length };
+  }
 
   const GTC_BODY = and(
     box(add(V("a"), V("b")), A("S")),
@@ -153,8 +433,12 @@
 
   function evalTerm(t, env) {
     if (typeof t === "number") return t;
-    if (t.type === "var") return env[t.name];
+    if (t.type === "var") {
+      if (!Number.isFinite(env[t.name])) throw new Error(`Missing numeric value for '${t.name}'`);
+      return env[t.name];
+    }
     if (t.type === "add") return evalTerm(t.left, env) + evalTerm(t.right, env);
+    if (t.type === "sub") return evalTerm(t.left, env) - evalTerm(t.right, env);
     throw new Error("Unknown term");
   }
   function support(e, env, record) {
@@ -166,6 +450,8 @@
       case "not": return complement(support(e.child, env, record));
       case "box": return erode(support(e.child, env, record), evalTerm(e.t, env));
       case "diamond": return dilate(support(e.child, env, record), evalTerm(e.t, env));
+      case "box_neg": return erode(complement(support(e.child, env, record)), evalTerm(e.t, env));
+      case "diamond_neg": return dilate(complement(support(e.child, env, record)), evalTerm(e.t, env));
       case "shift": return displace(support(e.child, env, record), evalTerm(e.u, env));
       default: throw new Error("Unknown expression");
     }
@@ -520,14 +806,23 @@
     pRoom,
     V,
     add,
+    sub,
     A,
     box,
     dia,
+    boxNeg,
+    diaNeg,
     shift,
     and,
     or,
     not,
     NOEVENT,
+    parseFormulaString,
+    formulaToString,
+    formatFormula,
+    evaluateFormulaString,
+    findFormulaMatches,
+    queryFormula,
     GTC_BODY,
     PGES_BODY,
     STRICT_BODY,

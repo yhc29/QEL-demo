@@ -142,6 +142,10 @@
   .formula .ev.empty { color: #f0c26a; }
   .formula .paren { color: #b6c0ca; }
   .formula-bar.strict-formula .formula { font-size: clamp(12px, 1.45vw, 18px); line-height: 1.9; }
+  .formula-bar .formula { white-space: normal; overflow-wrap: anywhere; }
+  .formula-raw { flex-basis: 100%; border-top: 1px solid rgba(255,255,255,.12); padding-top: 9px; color: #b6c0ca; font: 11px/1.55 "SFMono-Regular", ui-monospace, Menlo, monospace; }
+  .formula-raw span { display: block; margin-bottom: 3px; color: #8f9aa6; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+  .formula-raw code { display: block; color: #d7e3e0; white-space: pre-wrap; overflow-wrap: anywhere; }
   @media (max-width: 760px) {
     .formula-bar.strict-formula .formula { white-space: normal; }
   }
@@ -201,6 +205,17 @@
     padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12);
   }
   .formula-guards[hidden] { display: none; }
+  .custom-builder { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+  .custom-builder[hidden], .compare-panel[hidden] { display: none; }
+  .builder-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .builder-head h3 { margin: 0; font-size: 17px; }
+  .builder-head p { margin: 0; color: var(--muted); font-size: 12px; }
+  .builder-fields { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .builder-field { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: #faf7f1; font-size: 12px; }
+  .builder-field select, .builder-field input { border: 1px solid var(--line-strong); border-radius: 6px; background: white; color: var(--ink); padding: 5px 7px; font: 12px ui-monospace, Menlo, monospace; }
+  .builder-field input { width: 74px; }
+  .builder-formula { display: block; margin-top: 12px; width: 100%; min-height: 66px; box-sizing: border-box; padding: 10px; border: 1px solid var(--line-strong); border-radius: 9px; color: var(--ink); background: #fff; font: 12px/1.5 ui-monospace, Menlo, monospace; }
+  .builder-error { min-height: 18px; margin: 7px 0 0; color: var(--red); font-size: 12px; }
   .guard-chip {
     border: 1px solid rgba(139,212,200,.35); color: #b8e6df; background: rgba(139,212,200,.08);
     border-radius: 999px; padding: 4px 8px; font: 650 10.5px/1.2 "SFMono-Regular", ui-monospace, Menlo, monospace;
@@ -599,7 +614,7 @@
       <div class="eyebrow">Interactive demo · QEL / BEST · Manual Evaluation</div>
       <h1>Build a cohort from annotated timelines</h1>
       <p class="lede">
-        Each card is one evaluation case from the loaded set. Choose GTC or PGES, adjust the suppression filter,
+        Each card is one evaluation case from the loaded set. Choose a preset or edit its formula in Custom formula,
         run the query, and inspect the witness that makes a case satisfy the temporal formula.
         The set loads from <code>pges-manual-eval.json</code>; you can replace it with another JSON file.
       </p>
@@ -619,6 +634,7 @@
           <button type="button" data-preset="pges" aria-pressed="true">PGES base</button>
           <button type="button" data-preset="strict" aria-pressed="false">PGES strict</button>
           <button type="button" data-preset="gtc" aria-pressed="false">GTC</button>
+          <button type="button" data-preset="custom" aria-pressed="false">Custom formula</button>
         </div>
         <div class="solver-row">
           <label class="panel-label" for="solverMode">Solver</label>
@@ -649,7 +665,18 @@
     <div class="formula-bar">
       <div class="formula" id="formulaBar" aria-live="polite"></div>
       <span class="formula-chip" id="formulaChip" hidden></span>
+      <div class="formula-raw"><span>Formula string</span><code id="formulaRaw"></code></div>
       <div class="formula-guards" id="formulaGuards" hidden></div>
+    </div>
+
+    <div class="custom-builder" id="customBuilder" hidden>
+      <div class="builder-head"><h3>Edit the selected formula</h3><p>Change operators, time terms, and event labels. Run the query to update every case.</p></div>
+      <div class="builder-fields" id="builderFields"></div>
+      <label class="panel-label" for="builderFormula" style="display:block;margin-top:12px">Formula string</label>
+      <textarea class="builder-formula" id="builderFormula" spellcheck="false" aria-describedby="builderHelp builderError"></textarea>
+      <label class="hint" style="display:inline-flex;align-items:center;gap:7px;margin-top:8px"><input type="checkbox" id="customHalfOpen"> Treat event intervals as half-open</label>
+      <p class="hint" id="builderHelp">Syntax: box(a+b,S), diamond(a,T), box_neg(a,P), diamond_neg(b,C), shift(a,diamond(b,C)), neg(P). Use and(left,right) to combine clauses.</p>
+      <p class="builder-error" id="builderError" role="alert"></p>
     </div>
 
     <div class="controls">
@@ -666,7 +693,7 @@
 
   <section class="summary" aria-label="Query result summary" aria-live="polite">
     <div class="summary-card accent"><strong id="sumPatients">—</strong><span>patients with ≥1 match</span></div>
-    <div class="summary-card"><strong id="sumPatterns">—</strong><span>matching patterns</span></div>
+    <div class="summary-card"><strong id="sumPatterns">—</strong><span id="sumPatternsLabel">matching patterns</span></div>
     <div class="summary-card"><strong id="sumRecords">—</strong><span>cases evaluated</span></div>
     <div class="summary-card runtime"><strong id="sumRuntime">—</strong><span>browser runtime</span></div>
     <div class="summary-card" style="grid-column: 1 / -1">
@@ -674,7 +701,7 @@
     </div>
   </section>
 
-  <section class="panel compare-panel" aria-labelledby="compare-title">
+  <section class="panel compare-panel" id="comparePanel" aria-labelledby="compare-title">
     <div class="compare-copy">
       <div class="panel-label" id="compare-title">One evaluation set, two query formulas</div>
       <p><strong>PGES base</strong> is the permissive reference query: it asks for a T and a C occurrence in their windows, so intervals may overlap or extend outside S, and P may begin before the offset. <strong>PGES strict</strong> is one exact formula with a 10 s no-event prefix, <code>S∧¬P</code>, <code>T∧¬C</code>, <code>C∧¬T</code>, and <code>P∧¬S</code>. The exclusions sit inside the formula, so a boundary meet is allowed and postictal T/C is not excluded because the last conjunct only excludes S.</p>
@@ -737,7 +764,7 @@
       </article>
       <article class="explain-card">
         <h3>Finite witnesses, not sampling</h3>
-        <p>For each seizure episode the demo draws the candidate points for x, a, b, and c only from interval boundaries already present in the case, then verifies every candidate with the interval semantics. No midpoint or epsilon-shifted candidates and no random sampling are used. Use the Solver selector to compare the optimized witness search with the paper boundary scan. <a href="qel-algorithm.html">See the step-by-step algorithm trace →</a></p>
+        <p>The presets use interval boundaries from each case to find and verify witnesses. Custom formulas derive time variables from all case endpoints and their differences, then check the edited expression with the same interval semantics. Use the Solver selector to compare the preset search paths. <a href="qel-algorithm.html">See the step-by-step algorithm trace →</a></p>
       </article>
       <article class="explain-card">
         <h3>Two formulas, one evaluation set</h3>
@@ -785,8 +812,18 @@
     support,
     halfOpenRecord,
     findMatches,
-    findMatchesFiniteCell
+    findMatchesFiniteCell,
+    parseFormulaString,
+    formulaToString,
+    formatFormula,
+    queryFormula
   } = core;
+
+  const PRESET_FORMULAS = {
+    gtc: "and(box(a+b,S),and(diamond(a,T),shift(a,diamond(b,C))))",
+    pges: "and(box(a+b,S),and(diamond(a,T),and(shift(a,diamond(b,C)),shift(a+b,box(c,P)))))",
+    strict: "and(box(10,noevent),and(shift(10,box(a+b,and(S,neg(P)))),and(shift(10,diamond(a,and(T,neg(C)))),and(shift(10+a,diamond(b,and(C,neg(T)))),shift(10+a+b,box(c,and(P,neg(S))))))))"
+  };
 
   const DEFAULT_AXIS_MAX = 240;
   let AXIS_MAX = DEFAULT_AXIS_MAX;
@@ -836,7 +873,7 @@
   /* ---------- timeline rendering ---------- */
   function pct(t) { return Math.max(0, Math.min(100, (t / AXIS_MAX) * 100)); }
   function timelineHTML(record, match, detail) {
-    const labels = ["S", "T", "C", "P"];
+    const labels = [...new Set(["S", "T", "C", "P", ...Object.keys(record.supports)])];
     const rows = labels.map(label => {
       const IE = record.supports[label] || [];
       const bars = IE.map(i => {
@@ -899,11 +936,15 @@
     selectedId: null,
     selectedMatch: 0,
     results: null,
-    comparison: null
+    comparison: null,
+    customFormula: PRESET_FORMULAS.pges,
+    customHalfOpen: false,
+    customSource: "pges"
   };
 
   const els = {
     formulaBar: document.getElementById("formulaBar"),
+    formulaRaw: document.getElementById("formulaRaw"),
     formulaChip: document.getElementById("formulaChip"),
     formulaGuards: document.getElementById("formulaGuards"),
     cMin: document.getElementById("cMin"),
@@ -918,6 +959,7 @@
     auditPanel: document.getElementById("auditPanel"),
     sumPatients: document.getElementById("sumPatients"),
     sumPatterns: document.getElementById("sumPatterns"),
+    sumPatternsLabel: document.getElementById("sumPatternsLabel"),
     sumRecords: document.getElementById("sumRecords"),
     sumRuntime: document.getElementById("sumRuntime"),
     cmpBaseM: document.getElementById("cmpBaseM"),
@@ -937,8 +979,92 @@
     evalStatus: document.getElementById("evalStatus"),
     recordsInfo: document.getElementById("recordsInfo"),
     datasetInfo: document.getElementById("datasetInfo"),
-    evalMeta: document.getElementById("evalMeta")
+    evalMeta: document.getElementById("evalMeta"),
+    customBuilder: document.getElementById("customBuilder"),
+    builderFields: document.getElementById("builderFields"),
+    builderFormula: document.getElementById("builderFormula"),
+    builderError: document.getElementById("builderError"),
+    customHalfOpen: document.getElementById("customHalfOpen"),
+    comparePanel: document.getElementById("comparePanel")
   };
+
+  function termString(term) {
+    if (typeof term === "number") return String(term);
+    if (term.type === "var") return term.name;
+    const symbol = term.type === "sub" ? "-" : "+";
+    return `(${termString(term.left)}${symbol}${termString(term.right)})`;
+  }
+
+  function builderNode(ast, path) {
+    return path ? path.split(".").reduce((node, key) => node[key], ast) : ast;
+  }
+
+  function renderBuilder() {
+    const ast = parseFormulaString(state.customFormula);
+    els.builderFormula.value = state.customFormula;
+    els.customHalfOpen.checked = state.customHalfOpen;
+    els.builderFields.replaceChildren();
+    const labels = [...new Set(DATASET.flatMap(record => Object.keys(record.supports)))];
+    function field(title, path, node) {
+      const wrap = document.createElement("label");
+      wrap.className = "builder-field";
+      wrap.append(document.createTextNode(title));
+      const select = document.createElement("select");
+      select.dataset.path = path;
+      select.dataset.field = node.type === "atom" || node.type === "noevent" ? "label" : "operator";
+      const choices = select.dataset.field === "label"
+        ? [...new Set([...labels, "noevent", node.label].filter(Boolean))]
+        : ["box", "diamond", "box_neg", "diamond_neg", "shift", "neg"];
+      for (const value of choices) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        select.append(option);
+      }
+      select.value = select.dataset.field === "label" ? (node.label || "noevent") : (node.type === "not" ? "neg" : node.type);
+      wrap.append(select);
+      if (select.dataset.field === "operator" && node.type !== "not") {
+        const input = document.createElement("input");
+        input.dataset.path = path;
+        input.dataset.field = "term";
+        input.value = termString(node.t ?? node.u);
+        input.setAttribute("aria-label", `${title} time term`);
+        wrap.append(input);
+      }
+      els.builderFields.append(wrap);
+    }
+    let index = 0;
+    function walk(node, path) {
+      if (node.type === "atom" || node.type === "noevent") {
+        field(`Event ${++index}`, path, node);
+      } else if (["box", "diamond", "box_neg", "diamond_neg", "shift", "not"].includes(node.type)) {
+        field(`Operator ${++index}`, path, node);
+        walk(node.child, path ? `${path}.child` : "child");
+      } else if (node.type === "and" || node.type === "or") {
+        walk(node.left, path ? `${path}.left` : "left");
+        walk(node.right, path ? `${path}.right` : "right");
+      }
+    }
+    walk(ast, "");
+  }
+
+  function evaluateCustomQuery() {
+    const formula = els.builderFormula.value.trim();
+    parseFormulaString(formula);
+    const t0 = performance.now();
+    const perRecord = DATASET.map(record => {
+      const result = queryFormula(formula, record, { halfOpen: state.customHalfOpen, maxEvaluations: 200000 });
+      return { record, matches: result.witness ? [result.witness] : [] };
+    });
+    state.customFormula = formula;
+    return {
+      query: { kind: "custom", formula, strict: false },
+      perRecord,
+      matches: perRecord.filter(item => item.matches.length).length,
+      patients: perRecord.filter(item => item.matches.length).length,
+      elapsed: performance.now() - t0
+    };
+  }
 
   function currentQuery() {
     const kind = state.preset === "gtc" ? "gtc" : "pges";
@@ -961,6 +1087,26 @@
   }
 
   function runQuery() {
+    if (state.preset === "custom") {
+      try {
+        const result = evaluateCustomQuery();
+        state.results = result;
+        state.comparison = null;
+        els.builderError.textContent = "";
+        renderBuilder();
+        if (!DATASET.some(record => record.id === state.selectedId)) state.selectedId = DATASET[0]?.id || null;
+        state.selectedMatch = 0;
+        renderAll();
+      } catch (error) {
+        state.results = null;
+        state.comparison = null;
+        renderAll();
+        els.formulaRaw.textContent = els.builderFormula.value;
+        els.formulaBar.textContent = "Invalid formula";
+        els.builderError.textContent = error.message;
+      }
+      return;
+    }
     const query = currentQuery();
     if (els.solverHint) {
       els.solverHint.textContent = query.solver === "paper"
@@ -987,35 +1133,27 @@
   }
 
   function renderFormula() {
+    const custom = state.preset === "custom";
+    const raw = custom ? state.customFormula : PRESET_FORMULAS[state.preset];
+    const formatted = formatFormula(raw);
+    els.formulaBar.innerHTML = formatted.html;
+    els.formulaRaw.textContent = raw;
+    els.customBuilder.hidden = !custom;
+    els.comparePanel.hidden = custom;
+    if (els.solverMode) els.solverMode.disabled = custom;
+    if (custom) {
+      els.formulaBar.closest(".formula-bar").classList.remove("strict-formula");
+      els.formulaChip.hidden = false;
+      els.formulaChip.textContent = "custom · first witness per case";
+      els.formulaGuards.hidden = true;
+      els.cMin.disabled = true;
+      els.cMinLabel.textContent = "Suppression filter (presets only)";
+      els.cMinVal.textContent = "—";
+      els.queryHint.textContent = "Custom query checks the formula against every case. Each matched case shows its first satisfying variable assignment.";
+      return;
+    }
     const pges = state.preset !== "gtc";
     const strict = state.preset === "strict";
-    const q = pges ? "∃x ∃a ∃b ∃c" : "∃x ∃a ∃b";
-    const pConj = pges
-      ? `<span class="op">∧</span><span class="paren">(</span><span class="op">□</span><sub>c</sub><span class="ev p">P</span><span class="paren">)</span><sub>a+b</sub>`
-      : "";
-    const strictHTML = `
-      <span class="q">∃x ∃a ∃b ∃c</span>
-      <span class="br">[</span>
-      <span class="op">□</span><sub>10</sub><span class="ev empty">∅</span>
-      <span class="op">∧</span>
-      <span class="paren">(</span><span class="op">□</span><sub>a+b</sub><span class="paren">(</span><span class="ev s">S</span><span class="op">∧</span><span class="op">¬</span><span class="ev p">P</span><span class="paren">)</span><span class="paren">)</span><sub>10</sub>
-      <span class="op">∧</span>
-      <span class="paren">(</span><span class="op">◊</span><sub>a</sub><span class="paren">(</span><span class="ev t">T</span><span class="op">∧</span><span class="op">¬</span><span class="ev c">C</span><span class="paren">)</span><span class="paren">)</span><sub>10</sub>
-      <span class="op">∧</span>
-      <span class="paren">(</span><span class="op">◊</span><sub>b</sub><span class="paren">(</span><span class="ev c">C</span><span class="op">∧</span><span class="op">¬</span><span class="ev t">T</span><span class="paren">)</span><span class="paren">)</span><sub>10+a</sub>
-      <span class="op">∧</span>
-      <span class="paren">(</span><span class="op">□</span><sub>c</sub><span class="paren">(</span><span class="ev p">P</span><span class="op">∧</span><span class="op">¬</span><span class="ev s">S</span><span class="paren">)</span><span class="paren">)</span><sub>10+a+b</sub>
-      <span class="br">]</span><sub class="q">x</sub>`;
-    els.formulaBar.innerHTML = strict ? strictHTML : `
-      <span class="q">${q}</span>
-      <span class="br">[</span>
-      <span class="op">□</span><sub>a+b</sub><span class="ev s">S</span>
-      <span class="op">∧</span>
-      <span class="op">◊</span><sub>a</sub><span class="ev t">T</span>
-      <span class="op">∧</span>
-      <span class="paren">(</span><span class="op">◊</span><sub>b</sub><span class="ev c">C</span><span class="paren">)</span><sub>a</sub>
-      ${pConj}
-      <span class="br">]</span><sub class="q">x</sub>`;
     els.formulaBar.closest(".formula-bar").classList.toggle("strict-formula", strict);
 
     if (strict) {
@@ -1086,6 +1224,7 @@
   }
 
   function renderSummary() {
+    els.sumPatternsLabel.textContent = state.preset === "custom" ? "cases with a witness" : "matching patterns";
     if (els.sumRecords) els.sumRecords.textContent = DATASET.length ? String(DATASET.length) : "—";
     if (els.datasetInfo) {
       if (DATASET.length) {
@@ -1096,11 +1235,11 @@
     }
     if (els.evalMeta) {
       if (DATASET.length && EVAL_META) {
-        const agree = expectedAgreement();
+        const agree = state.preset === "custom" ? null : expectedAgreement();
         const agreeText = agree
           ? ` Expected agreement at c ≥ 0: <strong class="${agree.base.bad.length ? "fail" : "pass"}">base ${agree.base.ok}/${agree.base.total}</strong>, <strong class="${agree.strict.bad.length ? "fail" : "pass"}">strict ${agree.strict.ok}/${agree.strict.total}</strong>${agree.base.bad.length || agree.strict.bad.length ? " · mismatches " + [...agree.base.bad, ...agree.strict.bad].join(", ") : ""}.`
           : "";
-        els.evalMeta.innerHTML = `<strong>Evaluation set:</strong> ${EVAL_META.name} v${EVAL_META.version || "?"} · ${DATASET.length} cases.${agreeText}`;
+        els.evalMeta.innerHTML = `<strong>Evaluation set:</strong> ${EVAL_META.name} v${EVAL_META.version || "?"} · ${DATASET.length} cases.${agreeText}${state.preset === "custom" ? " Custom results use the edited formula; preset expectations do not apply." : ""}`;
       } else if (DATASET_ERROR) {
         els.evalMeta.innerHTML = `<strong>Evaluation set:</strong> ${DATASET_ERROR}`;
       } else {
@@ -1164,7 +1303,7 @@
       let badge = '<span class="badge pending">pending</span>';
       if (matches) {
         badge = matches.length
-          ? `<span class="badge pass">${matches.length} pattern${matches.length > 1 ? "s" : ""}</span>`
+          ? `<span class="badge pass">${state.preset === "custom" ? "match" : `${matches.length} pattern${matches.length > 1 ? "s" : ""}`}</span>`
           : '<span class="badge fail">no match</span>';
       }
       const selected = record.id === state.selectedId;
@@ -1175,8 +1314,10 @@
       const expected = record.expected || null;
       const expectedStrict = record.expected_strict || null;
       const expBits = [];
-      if (expected) expBits.push(`base ${expected.shouldMatch ? "match" : "no match"}`);
-      if (expectedStrict) expBits.push(`strict ${expectedStrict.shouldMatch ? "match" : "no match"}`);
+      if (state.preset !== "custom") {
+        if (expected) expBits.push(`base ${expected.shouldMatch ? "match" : "no match"}`);
+        if (expectedStrict) expBits.push(`strict ${expectedStrict.shouldMatch ? "match" : "no match"}`);
+      }
       const cat = record.category ? `<span class="badge pending" style="margin-left:4px;">${record.category}</span>` : "";
       return `<button type="button" class="${classes.join(" ")}" data-record="${record.id}" aria-pressed="${selected}">
         <div class="record-head">
@@ -1327,6 +1468,40 @@
     const matches = item ? item.matches : [];
     const hasResult = !!item;
 
+    if (state.preset === "custom" && hasResult) {
+      const match = matches[0];
+      const variableText = match
+        ? Object.entries(match.variables).map(([name, value]) => `${name}=${fmt(value)}`).join(", ")
+        : "";
+      els.auditPanel.replaceChildren();
+      const heading = document.createElement("div");
+      heading.className = "audit-head";
+      const title = document.createElement("h2");
+      title.textContent = record.title || record.id;
+      heading.append(title);
+      const badge = document.createElement("span");
+      badge.className = `badge ${match ? "pass" : "fail"}`;
+      badge.textContent = match ? "match" : "no match";
+      heading.append(badge);
+      els.auditPanel.append(heading);
+      const timeline = document.createElement("div");
+      timeline.innerHTML = timelineHTML(record, null, true);
+      els.auditPanel.append(timeline);
+      const note = document.createElement("div");
+      note.className = "note-box";
+      note.style.marginTop = "14px";
+      note.textContent = match
+        ? `Witness: x=${fmt(match.x)} s${variableText ? `, ${variableText}` : ""}. Formula support: ${formatIE(match.support)}.`
+        : "No assignment from this case's endpoint candidates satisfies the custom formula.";
+      els.auditPanel.append(note);
+      const formula = document.createElement("div");
+      formula.className = "note-box";
+      formula.style.marginTop = "10px";
+      formula.textContent = `Formula: ${state.customFormula}`;
+      els.auditPanel.append(formula);
+      return;
+    }
+
     if (!hasResult) {
       els.auditPanel.innerHTML = `
         <div class="audit-head">
@@ -1447,8 +1622,67 @@
   }
 
   /* ---------- events ---------- */
+  els.builderFields.addEventListener("change", event => {
+    const control = event.target.closest("[data-field]");
+    if (!control) return;
+    try {
+      const ast = parseFormulaString(state.customFormula);
+      const path = control.dataset.path;
+      const node = builderNode(ast, path);
+      let replacement = node;
+      if (control.dataset.field === "label") {
+        replacement = control.value === "noevent"
+          ? { type: "noevent" }
+          : { type: "atom", label: control.value };
+      } else if (control.dataset.field === "operator") {
+        const time = node.t ?? node.u ?? 10;
+        replacement = control.value === "neg"
+          ? { type: "not", child: node.child }
+          : { type: control.value, [control.value === "shift" ? "u" : "t"]: time, child: node.child };
+      } else if (control.dataset.field === "term") {
+        const term = parseFormulaString(`box(${control.value},S)`).t;
+        replacement = { ...node, [node.type === "shift" ? "u" : "t"]: term };
+      }
+      if (path) {
+        const parts = path.split(".");
+        const key = parts.pop();
+        builderNode(ast, parts.join("."))[key] = replacement;
+      }
+      state.customFormula = formulaToString(path ? ast : replacement);
+      els.builderFormula.value = state.customFormula;
+      els.builderError.textContent = "";
+      renderBuilder();
+      runQuery();
+    } catch (error) {
+      els.builderError.textContent = error.message;
+    }
+  });
+
+  els.builderFormula.addEventListener("input", () => {
+    const draft = els.builderFormula.value;
+    els.formulaRaw.textContent = draft;
+    try {
+      els.formulaBar.innerHTML = formatFormula(draft).html;
+      els.formulaChip.textContent = "edit pending · run query";
+      els.builderError.textContent = "";
+    } catch (error) {
+      els.formulaBar.textContent = "Invalid formula";
+      els.builderError.textContent = error.message;
+    }
+  });
+  els.customHalfOpen.addEventListener("change", () => {
+    state.customHalfOpen = els.customHalfOpen.checked;
+    runQuery();
+  });
+
   els.presetButtons.forEach(button => {
     button.addEventListener("click", () => {
+      if (button.dataset.preset === "custom" && state.preset !== "custom") {
+        state.customSource = state.preset;
+        state.customFormula = PRESET_FORMULAS[state.preset];
+        state.customHalfOpen = state.preset === "strict";
+        renderBuilder();
+      }
       state.preset = button.dataset.preset;
       if (state.preset === "gtc") state.cMin = 0;
       els.cMin.value = String(state.cMin);
@@ -1461,7 +1695,7 @@
   els.cMin.addEventListener("input", () => {
     state.cMin = Number(els.cMin.value);
     els.cMinVal.textContent = String(state.cMin);
-    if (state.preset !== "gtc") runQuery();
+    if (state.preset !== "gtc" && state.preset !== "custom") runQuery();
   });
 
   if (els.solverMode) {
@@ -1477,6 +1711,10 @@
     state.preset = "pges";
     state.cMin = 0;
     state.solver = "optimized";
+    state.customFormula = PRESET_FORMULAS.pges;
+    state.customHalfOpen = false;
+    state.customSource = "pges";
+    els.builderError.textContent = "";
     state.selectedId = DATASET[0] ? DATASET[0].id : null;
     state.selectedMatch = 0;
     els.cMin.value = "0";
@@ -1530,7 +1768,7 @@
       description: "Synthetic BEST records for the current QEL evaluation set. Times are in seconds; intervals are closed.",
       axis_seconds: [0, AXIS_MAX],
       labels: ["S", "T", "C", "P"],
-      records
+      cases: records
     }, "pges-manual-eval-current.json");
   });
 
@@ -1563,12 +1801,11 @@
       if (!json || !json.cases) {
         throw new Error("Invalid evaluation JSON: missing cases");
       }
-      const allowedLabels = new Set(["S", "T", "C", "P"]);
       const cases = json.cases.map(c => {
         const rawEvents = c.events || {};
         const supports = {};
         for (const [label, intervals] of Object.entries(rawEvents)) {
-          if (!allowedLabels.has(label)) {
+          if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(label) || label === "noevent") {
             throw new Error(`${c.id}: unsupported label ${label}`);
           }
           for (const pair of (intervals || [])) {
