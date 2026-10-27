@@ -2,7 +2,17 @@
 
 Standalone browser documentation and demos for the QEL/PGES temporal query engine. Everything in this folder is static HTML, CSS, and JavaScript. The pages use synthetic records only, run entirely in the browser.
 
-## Quick start
+## GitHub Pages
+
+The repository is a plain static site published from the repository root, so GitHub Pages serves it as-is:
+
+- <https://yhc29.github.io/QEL-demo/> — narrative guide (`index.html`)
+- <https://yhc29.github.io/QEL-demo/qel-playground.html> — interactive cohort playground
+- <https://yhc29.github.io/QEL-demo/qel-algorithm.html> — Algorithms 1–3 walkthrough
+
+Enable it under **Settings → Pages → Build and deployment → Deploy from a branch**, then choose branch `main` and folder `/ (root)`. The `.nojekyll` file at the root disables Jekyll processing so every static asset is published unchanged. All links are relative, so the site works both at a project path (`/QEL-demo/`) and at a user root.
+
+## Local preview
 
 From the repository root:
 
@@ -12,7 +22,7 @@ python3 -m http.server 8123 --directory ./
 
 Open:
 
-- <http://localhost:8123/qel-reproducibility.html> — narrative guide
+- <http://localhost:8123/index.html> — narrative guide
 - <http://localhost:8123/qel-playground.html> — interactive cohort playground
 - <http://localhost:8123/qel-algorithm.html> — Algorithms 1–3 walkthrough
 
@@ -22,17 +32,18 @@ Open:
 
 | File | Purpose |
 | --- | --- |
-| `qel-reproducibility.html` | Self-contained guide to interval ensembles, endpoint arithmetic, PGES formulas, strict semantics, and backend mappings. |
+| `index.html` | Landing page and self-contained guide to interval ensembles, endpoint arithmetic, PGES formulas, strict semantics, and backend mappings. |
 | `qel-playground.html` | Interactive cohort builder for the 54-case evaluation set, with GTC/PGES presets, a suppression filter, two solver paths, JSON replacement, and pattern/patient counts. |
 | `qel-algorithm.html` | Interactive trace of Algorithms 1–3 on record P01: primitives, model checking, and finite-evidence scanning. |
 | `qel-query-core.js` | Shared JavaScript engine. Exposes `window.QELCore` and is loaded by the playground and algorithm page. |
 | `pges-manual-eval.json` | 54-case manual evaluation set, version 3.0.0, with expected base and strict outcomes. |
+| `.nojekyll` | Tells GitHub Pages to publish the folder without Jekyll processing. |
 
 ## What each page covers
 
 ### Reproducibility guide
 
-`qel-reproducibility.html` explains the data model and formulas without requiring the backend:
+`index.html` explains the data model and formulas without requiring the backend:
 
 - BEST labels: `S` seizure, `T` tonic, `C` clonic, `P` EEG suppression.
 - Canonical interval ensembles with open and closed endpoints.
