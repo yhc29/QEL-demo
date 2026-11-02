@@ -522,8 +522,7 @@
     </div>
     <p class="hero-meta">
       Companion to <em>QEL: Rational Ensemble Logic for Model-Checking-Based Cohort Discovery with
-      Real-World Electrophysiology Data</em> (Zhang, Hao, Huang, Li, Cui). Built from the paper and the
-      existing <code>telii-rocket</code> query functions.
+      Real-World Electrophysiology Data</em> (Zhang, Hao, Huang, Li, Cui).
     </p>
   </section>
 
@@ -687,9 +686,8 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       <span class="mark">!</span>
       <div>
         <strong>Why this representation matters for reproducibility</strong>
-        The semantics never depends on a particular database schema. Once annotations are expressed as
-        interval ensembles, the same QEL formula can be checked by the backend, by a notebook, or by the
-        static browser demo on this site.
+        QEL operates on interval ensembles, so the same formula can be understood and evaluated without
+        tying its meaning to a particular way of storing annotations.
       </div>
     </div>
   </section>
@@ -842,7 +840,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
   <section class="wrap" id="cohort" aria-labelledby="cohort-title">
     <div class="section-head">
       <div>
-        <div class="kicker">3 · Database to cohort</div>
+        <div class="kicker">3 · Cohort evaluation</div>
         <h2 id="cohort-title">Evaluate the formula record by record</h2>
       </div>
       <p>The cohort is defined by logical satisfaction, not by a hand-written procedural heuristic.</p>
@@ -855,7 +853,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
         [[ψ]]<sub>D</sub> = { ε | (ε, q) ⊨ ψ, ε ∈ D }
       </div>
       <p style="margin-top:14px">
-        D is the database of BEST records. The formula is checked independently for each record ε.
+        D is the set of BEST records. The formula is checked independently for each record ε.
         In the PGES search, the existential block ranges over seizure anchors and duration variables;
         a record is included if some witness satisfies the whole body.
       </p>
@@ -884,7 +882,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       </article>
       <article class="card">
         <span class="tag">Complexity</span>
-        <h3>Record-local endpoint-array model checking</h3>
+        <h3>Finite-endpoint model checking</h3>
         <p>Let N be the total number of interval boundaries in a record and let |ψ| be the syntax-tree size. For a formula whose finite-evidence enumeration uses at most k free rational variables in any quantified block, the paper gives the bound:</p>
         <div class="formula" style="margin-top:14px; font-size: clamp(22px, 2.5vw, 30px)">
           O(|ψ| · N<sup>k+1</sup>)
@@ -893,56 +891,6 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       </article>
     </div>
 
-    <div class="grid-2" style="margin-top:18px">
-      <article class="card">
-        <span class="tag">Backend mapping</span>
-        <h3>Where the existing query functions fit</h3>
-        <p>The Rust backend implements the same support algebra as MongoDB aggregation stages. The key mapping is:</p>
-        <div class="table-wrap" style="margin-top:14px">
-          <table>
-            <thead><tr><th>Concept</th><th>Backend location</th></tr></thead>
-            <tbody>
-              <tr><td>Atomic label support</td><td><code>construct_query</code> · <code>eeg_query_api.rs:210</code></td></tr>
-              <tr><td>□<sub>t</sub> condition</td><td><code>box_t_phi</code>, <code>box_t_neg_phi</code>, <code>box_phi_t</code>, <code>box_neg_phi_t</code> · <code>eeg_query_api.rs:296–370</code></td></tr>
-              <tr><td>◊<sub>t</sub> condition</td><td><code>diamond_t_phi</code>, <code>diamond_t_neg_phi</code>, <code>diamond_phi_t</code>, <code>diamond_neg_phi_t</code> · <code>eeg_query_api.rs:372–445</code></td></tr>
-              <tr><td>Conjunction of conditions</td><td><code>construct_tel_cond</code> · <code>eeg_query_api.rs:266</code></td></tr>
-              <tr><td>Binary Allen relations</td><td><code>eeg_allen_query</code> · <code>eeg_query_api.rs:75</code></td></tr>
-              <tr><td>Precomputed binary cohort index</td><td><code>rtq_telii</code> · <code>query_api.rs:88</code></td></tr>
-              <tr><td>Timeline collection</td><td><code>EegMongoRepo</code> · <code>mongodb.rs:90</code></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p style="margin-top:12px">`eeg_allen_query` exposes named relations such as <code>before</code>, <code>contain</code>, <code>overlap</code>, and <code>meet</code> by expanding each relation into a conjunction of box and diamond conditions. PGES is not a single Allen relation; it is a compound pattern built from the same primitives.</p>
-      </article>
-      <article class="card">
-        <span class="tag">Aggregation outline</span>
-        <h3>How the backend compiles a temporal condition</h3>
-        <pre class="code-block" style="margin-top:14px"><span class="c">// eeg_query_api.rs — construct_query</span>
-<span class="k">$match</span>   { e: { <span class="s">$in</span>: event_ids } }
-<span class="k">$project</span> { subjectid, e, times }
-<span class="k">$unwind</span>  <span class="s">"$times"</span>
-<span class="k">$group</span>   { _id: <span class="s">"$subjectid"</span>, ... }
-<span class="k">$project</span> { e1: { <span class="s">$setDifference</span>: [...] }, ... }
-<span class="k">$match</span>   { <span class="s">$expr</span>: { <span class="s">$and</span>: [...] } }
-<span class="k">$unwind</span>  <span class="s">"$e1"</span>; <span class="k">$unwind</span> <span class="s">"$e2"</span>
-<span class="k">$project</span> { min_e1, max_e1, min_e2, max_e2, ... }
-<span class="k">$addFields</span> { tel_cond: ... }
-<span class="k">$match</span>   { tel_cond: <span class="s">true</span> }
-<span class="k">$group</span>   { _id: { subjectid, ... } }</pre>
-        <p style="margin-top:12px">The pipeline first groups annotation timestamps by patient and event, then compiles the temporal condition into <code>tel_cond</code>, and finally keeps the patients for which the condition evaluates to true.</p>
-      </article>
-    </div>
-
-    <div class="callout" style="margin-top:18px">
-      <span class="mark">!</span>
-      <div>
-        <strong>Index path versus model-checking path</strong>
-        Binary relative-temporal queries can use the precomputed <code>telii</code> index in <code>query_api.rs</code>.
-        The PGES case exercises the richer timeline path: extract per-patient event arrays, build min/max
-        boundaries, evaluate the compound support condition, and return subject-level matches. The static
-        playground mirrors the second path in the browser.
-      </div>
-    </div>
   </section>
 
   <section class="wrap" id="pges" aria-labelledby="pges-title">
@@ -1077,7 +1025,6 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
         <span class="tag amber">Reproducibility boundary</span>
         <h3>What these numbers do and do not certify</h3>
         <p>They certify the paper's end-to-end workflow on its clinical database. They do not certify the static demo, which uses 54 synthetic records. The demo is intended to make the semantics inspectable and executable, not to reproduce the clinical cohort or its runtime.</p>
-        <p style="margin-top:12px">The paper itself describes the 15.97 s result as an illustrative feasibility result rather than a systems benchmark. Query planning, indexing, and comparison with hand-written database queries are left to a companion study.</p>
       </article>
     </div>
 
@@ -1090,7 +1037,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
 cd docs
 python3 -m http.server 8080
 <span class="c"># open http://localhost:8080/index.html</span></pre>
-        <p style="margin-top:12px">No backend, database, or build step is required for the pages themselves. For the support-algebra walkthrough behind the audit panel, open the <a href="qel-algorithm.html">core query algorithm page</a>.</p>
+        <p style="margin-top:12px">No build step is required for the pages themselves. For the support-algebra walkthrough behind the audit panel, open the <a href="qel-algorithm.html">core query algorithm page</a>.</p>
       </article>
       <article class="card">
         <span class="tag">Audit trail</span>
@@ -1103,7 +1050,7 @@ python3 -m http.server 8080
           <span class="pill">support for each conjunct</span>
           <span class="pill">patient and pattern counts</span>
         </div>
-        <p style="margin-top:14px">The playground exposes each of these for a selected record. For a clinical deployment, the same audit trail should also record the data version, annotation provenance, and the exact endpoint semantics used by the database.</p>
+        <p style="margin-top:14px">The playground exposes each of these for a selected record. Recording the evaluation-set version and annotation provenance makes results easier to reproduce.</p>
       </article>
     </div>
   </section>
@@ -1118,8 +1065,6 @@ python3 -m http.server 8080
     <div class="footer-links">
       <a href="qel-playground.html">Playground</a>
       <a href="qel-algorithm.html">Core algorithm</a>
-      <a href="https://github.com/yhc29/temporal-event-level-inverted-index-rocket/blob/main/telii-rocket/src/api/eeg_query_api.rs">Backend: eeg_query_api.rs</a>
-      <a href="https://github.com/yhc29/temporal-event-level-inverted-index-rocket/blob/main/telii-rocket/src/api/query_api.rs">Backend: query_api.rs</a>
     </div>
   </div>
 </footer>

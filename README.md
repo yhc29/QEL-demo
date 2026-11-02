@@ -1,6 +1,6 @@
 # QEL / BEST docs
 
-Standalone browser documentation and demos for the QEL/PGES temporal query engine. Everything in this folder is static HTML, CSS, and JavaScript. The pages use synthetic records only, run entirely in the browser.
+Standalone browser documentation and demos for the QEL/PGES temporal query engine. Everything in this folder is static HTML, CSS, and JavaScript. The included example records are synthetic; the playground can load other labeled temporal datasets in the supported JSON format.
 
 ## GitHub Pages
 
@@ -32,7 +32,7 @@ Open:
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Landing page and self-contained guide to interval ensembles, endpoint arithmetic, PGES formulas, strict semantics, and backend mappings. |
+| `index.html` | Landing page and self-contained guide to interval ensembles, endpoint arithmetic, PGES formulas, and strict semantics. |
 | `qel-playground.html` | Interactive cohort builder for the 54-case evaluation set, with GTC/PGES presets, a suppression filter, two solver paths, JSON replacement, and pattern/patient counts. |
 | `qel-algorithm.html` | Interactive trace of Algorithms 1–3 on record P01: primitives, model checking, and finite-evidence scanning. |
 | `qel-query-core.js` | Shared JavaScript engine. Exposes `window.QELCore` and is loaded by the playground and algorithm page. |
@@ -50,7 +50,6 @@ Open:
 - Displacement, dilation, erosion, complement, intersection, and union.
 - The permissive base PGES formula and the exact strict PGES formula.
 - Worked P01 witness and timeline.
-- Mapping of interval primitives to backend functions in `eeg_query_api.rs`.
 - Current 54-case evaluation counts (base 47 patterns/43 patients, strict 36/33) and inspection workflow.
 
 ### Playground
@@ -146,6 +145,12 @@ Numeric comparisons use `EPS = 1e-6` and `TOL = 1e-9`. They are not exact ration
 
 At `c >= 0`, both formulas should agree with every expected case. The playground starts with 47 base patterns among 43 patients, 36 strict patterns among 33 patients, and 11 base-only patterns; 10 cases have no strict match. It reports patient and pattern counts separately. The set is synthetic and is not the paper's clinical cohort.
 
+### Clinical data and alternatives
+
+The clinical data used in the paper's experiments are from [SUDEP Research](https://sudepresearch.org/) and are not publicly available. This repository does not contain those data; its included 54-case evaluation set is synthetic and is provided to demonstrate the queries.
+
+You can use other labeled temporal data in place of the example set. Convert each case's annotations into event-labeled time intervals in the supported [JSON dataset format](#json-dataset-format), then load the file in the playground with **Choose JSON**. The labels and event intervals should reflect the events and time units used by your query.
+
 ### JSON dataset format
 
 Use a JSON object with a required top-level `cases` array. Each case needs a unique `id` and an `events` object. Event labels may be any identifier that starts with a letter or underscore and continues with letters, digits, or underscores; `noevent` is reserved. Each event maps to an array of closed `[start, end]` intervals in seconds; an empty array means that event is absent. Endpoints must be finite numbers and `start` must not exceed `end`.
@@ -187,4 +192,3 @@ Use a JSON object with a required top-level `cases` array. Each case needs a uni
 `name`, `version`, `description`, `labels`, and `axis_seconds` are dataset metadata. `labels` documents the event vocabulary; labels used in formulas and query builder controls come from the `events` objects. The upper value in `axis_seconds` sets the timeline's suggested extent; the chart expands to include larger event endpoints and has a 240 s minimum extent. For each case, `title`, `category`, `note`, and `relation_focus` are optional display text. `expected` and `expected_strict` are optional manual outcomes with `shouldMatch`, optional `minPatterns`, and an optional `reason`; they support the preset agreement summary and audit panel and do not change query evaluation. A `formula` field may also be included as descriptive metadata.
 
 To reproduce a query, keep the JSON file with the project, record the formula or preset and interval-boundary setting, then load it with **Choose JSON** → **Load selected**. **Download dataset** exports the current cases in this same `cases[]` format so the file can be loaded again.
-
