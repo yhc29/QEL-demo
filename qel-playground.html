@@ -639,10 +639,11 @@
         <div class="solver-row">
           <label class="panel-label" for="solverMode">Solver</label>
           <select id="solverMode" class="solver-select">
-            <option value="optimized" selected>Optimized witness search</option>
-            <option value="paper">Paper boundary scan (Algorithm 3)</option>
+            <option value="complete" selected>Complete base PGES (observed anchors)</option>
+            <option value="optimized">Optimized witness search (incomplete)</option>
+            <option value="paper">Boundary scan (incomplete)</option>
           </select>
-          <span class="solver-hint" id="solverHint">Observed interval boundaries only.</span>
+          <span class="solver-hint" id="solverHint">Complete for base PGES at observed anchors; other presets use the optimized search.</span>
         </div>
         <div class="eval-row">
           <span class="panel-label">Evaluation set</span>
@@ -813,6 +814,7 @@
     halfOpenRecord,
     findMatches,
     findMatchesFiniteCell,
+    findMatchesComplete,
     parseFormulaString,
     formulaToString,
     formatFormula,
@@ -932,7 +934,7 @@
   const state = {
     preset: "pges",
     cMin: 0,
-    solver: "optimized",
+    solver: "complete",
     selectedId: null,
     selectedMatch: 0,
     results: null,
@@ -1079,7 +1081,7 @@
 
   function evaluateQuery(query) {
     const t0 = performance.now();
-    const solve = query.solver === "paper" && findMatchesFiniteCell ? findMatchesFiniteCell : findMatches;
+    const solve = query.solver === "complete" ? findMatchesComplete : query.solver === "paper" ? findMatchesFiniteCell : findMatches;
     const perRecord = DATASET.map(record => ({ record, matches: solve(record, query) }));
     const matches = perRecord.reduce((n, item) => n + item.matches.length, 0);
     const patients = perRecord.filter(item => item.matches.length > 0).length;
@@ -1109,9 +1111,9 @@
     }
     const query = currentQuery();
     if (els.solverHint) {
-      els.solverHint.textContent = query.solver === "paper"
-        ? "Observed boundary quadruples; mirrors Algorithm 3."
-        : "Observed interval boundaries only; same semantics.";
+      els.solverHint.textContent = query.solver === "complete"
+        ? "Complete for base PGES at observed anchors, for finite closed inputs; strict and GTC use the incomplete optimized search."
+        : "Endpoint search is incomplete and may miss valid matches.";
     }
     state.results = evaluateQuery(query);
     state.comparison = {
@@ -1710,7 +1712,7 @@
   els.resetBtn.addEventListener("click", () => {
     state.preset = "pges";
     state.cMin = 0;
-    state.solver = "optimized";
+    state.solver = "complete";
     state.customFormula = PRESET_FORMULAS.pges;
     state.customHalfOpen = false;
     state.customSource = "pges";
@@ -1719,7 +1721,7 @@
     state.selectedMatch = 0;
     els.cMin.value = "0";
     els.cMinVal.textContent = "0";
-    if (els.solverMode) els.solverMode.value = "optimized";
+    if (els.solverMode) els.solverMode.value = "complete";
     els.presetButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.preset === "pges")));
     runQuery();
   });

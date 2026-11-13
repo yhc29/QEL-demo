@@ -650,46 +650,46 @@
     },
     {
       "id": "ME14",
-      "category": "strict_contrast",
-      "title": "T contains S: base accepts, strict rejects",
+      "category": "base_only_completeness",
+      "title": "Completeness: interior split required",
       "expected": {
         "shouldMatch": true,
         "minPatterns": 1,
-        "reason": "Base has a witness; the permissive formula does not enforce this strict condition."
+        "reason": "Base PGES holds at x=10 with a=b=c=50; the split at 60 is not an observed endpoint."
       },
       "relation_focus": {
-        "S-T": "T contains S"
+        "T-C": "T and C coincide, so strict exclusions fail."
       },
       "events": {
         "S": [
           [
-            30,
-            60
+            10,
+            110
           ]
         ],
         "T": [
           [
             10,
-            80
+            110
           ]
         ],
         "C": [
           [
-            40,
-            58
+            10,
+            110
           ]
         ],
         "P": [
           [
-            60,
-            110
+            110,
+            160
           ]
         ]
       },
-      "note": "T covers the whole seizure and extends into the pre-ictal quiet period. Base only needs a T occurrence in its window; strict fails □10∅ because T intersects [20,30).",
+      "note": "The base witness needs a split strictly between 10 and 110; endpoint-only search misses it.",
       "expected_strict": {
         "shouldMatch": false,
-        "reason": "T=[10,80] intersects the 10 s no-event prefix [20,30), so □10∅ fails."
+        "reason": "T and C coincide, so neither T∧¬C nor C∧¬T has a witness."
       }
     },
     {

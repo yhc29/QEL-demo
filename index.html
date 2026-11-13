@@ -1011,7 +1011,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
           </tbody>
         </table>
       </div>
-      <p style="margin-top:14px">Both formulas match all 54 expected outcomes at <code>c ≥ 0</code>. At <code>c ≥ 20</code>, base falls to 42 patterns across 39 patients and strict to 29 across 27. <strong>Base only</strong> reports 11 patterns matched by base but not strict; its patient column counts the 10 cases with no strict match. The optimized and paper boundary-scan solver paths return the same counts.</p>
+      <p style="margin-top:14px">Both formulas match all 54 expected outcomes at <code>c ≥ 0</code>. The suppression filter can change these counts. <strong>Base only</strong> reports 11 patterns matched by base but not strict; its patient column counts the 10 cases with no strict match. The complete base solver checks observed anchors with exact constraints. Endpoint-based searches can miss valid matches, including ME14.</p>
     </article>
 
     <div class="grid-2" style="margin-top:18px">
@@ -1032,7 +1032,7 @@ closure_mark = [0, 0, 1, 0, 1, 1, 1, 1]</pre>
       <article class="card">
         <span class="tag">Run it locally</span>
         <h3>From this page to the playground</h3>
-        <p>Open <a href="qel-playground.html">the companion playground</a>. It loads the 54-case evaluation set by default and accepts another JSON file in the same format. It also provides GTC/PGES base/PGES strict presets, a suppression-duration filter, a solver selector for the optimized or paper boundary-scan path, and an audit panel that shows the witness and support checks for every match.</p>
+        <p>Open <a href="qel-playground.html">the companion playground</a>. It loads the 54-case evaluation set by default and accepts another JSON file in the same format. It also provides GTC/PGES base/PGES strict presets, a suppression-duration filter, a solver selector for the complete base solver or endpoint-based heuristic paths, and an audit panel that shows the witness and support checks for every match.</p>
         <pre class="code-block" style="margin-top:14px"><span class="c"># serve the static pages locally</span>
 cd docs
 python3 -m http.server 8080

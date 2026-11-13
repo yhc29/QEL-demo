@@ -61,8 +61,8 @@ Open:
 - Presets: GTC, PGES base, PGES strict. **Custom formula** copies the selected preset into a query builder where each temporal operator, time term, and event label can be changed; the formula string can also be edited directly. The QEL notation and raw formula string are shown together and stay in sync.
 - `c >= n` witness filter for suppression duration.
 - Solver selector:
-  - **Optimized witness search** — observed interval-boundary candidates verified with interval support.
-  - **Paper boundary scan (Algorithm 3)** — the same observed boundaries enumerated as ordered points, also verified with interval support.
+  - **Complete base PGES** (default) — exact constraint search at observed anchors; strict and GTC fall back to the optimized search.
+  - **Optimized witness search** and **Boundary scan** — endpoint-based heuristics; both can miss matches.
 - Audit panel with the selected witness, per-conjunct checks, and matched pattern details.
 - Custom formula results call `QELCore.queryFormula` for every case and show the first witness per matched case. The builder reports query errors inline and allows half-open event boundaries.
 - Results table that reports matched patterns and patients separately for base, strict, and base-only queries.
@@ -121,18 +121,13 @@ A candidate is accepted when the formula support contains the reference point `x
 
 ## Solver paths
 
-`QELCore` exports two search paths:
+`findMatchesComplete(record, query)` is complete for the base PGES formula over finite, closed input intervals, when the reference point `x` is restricted to observed S/T/C/P endpoints. It enumerates those anchors and interval components, then solves the ordering and coverage inequalities using exact rational arithmetic. It does not restrict the split or seizure offset to observed endpoints. The suppression filter is included in those inequalities. JavaScript input numbers are interpreted as the decimal values in their `String(number)` representation; precision already lost during JSON parsing cannot be recovered. The returned `exactWitness` records rational numerator/denominator pairs. Displayed witnesses and support audits use floating-point arithmetic and may be inaccurate for extremely close endpoints.
 
-| Function | Role |
-| --- | --- |
-| `findMatches(record, query)` | Optimized boundary-candidate search used by default. |
-| `findMatchesFiniteCell(record, query)` | Paper boundary scan using `finiteCellPoints` candidates. |
-| `boundaryPoints(record, labels)` | Returns the sorted, unique interval endpoints already present in the record. |
-| `finiteCellPoints(record, labels)` | Backward-compatible alias for `boundaryPoints` in Algorithm 3. |
+The proof follows from writing `y=x+a` and `z=x+a+b`: for each anchor and relevant S, T, C, and P component, the existence of a witness is equivalent to the interval inequalities checked by the solver. It chooses an interior rational when a strict inequality requires one. It reports at most one witness per S component, not every possible witness. It does not claim completeness for arbitrary real-valued anchors, open input intervals, GTC, strict PGES, or custom formulas. Open or nonfinite intervals passed directly to this path are rejected. GTC and strict queries use the existing optimized path.
 
-Both paths use the same `support` verifier and draw their candidate `x`/`a`/`b`/`c` values only from observed interval boundaries. They do not use midpoint candidates, epsilon-shifted candidates, or random sampling. In the strict formula, `x` is derived as the S start minus the fixed 10 s quiet prefix; the S/T/C/P window boundaries still come from the record.
+`findMatches` and `findMatchesFiniteCell` are retained as endpoint heuristics. They are incomplete: ME14 has S=T=C=[0,2] and P=[2,3], and both miss the valid witness (0,1,1,1). `finiteCellPoints` is an endpoint alias, not an implementation of the paper's complete cell construction. These older paths and the general support evaluator use `EPS = 1e-6` and `TOL = 1e-9`, so near-boundary results may differ from exact semantics. The algorithm demonstration's boundary scan is illustrative and is not a complete implementation of the paper's construction.
 
-Numeric comparisons use `EPS = 1e-6` and `TOL = 1e-9`. They are not exact rational arithmetic, so filtering very close to a boundary can differ by a tolerance-scale amount.
+Run the regression checks with `node tests/complete-pges.js`.
 
 ## Manual evaluation set
 
@@ -143,7 +138,7 @@ Numeric comparisons use `EPS = 1e-6` and `TOL = 1e-9`. They are not exact ration
 - `cases[]`: 54 cases, each with `events`, `expected`, and `expected_strict`.
 - `strict_quiet_seconds`: `10`.
 
-At `c >= 0`, both formulas should agree with every expected case. The playground starts with 47 base patterns among 43 patients, 36 strict patterns among 33 patients, and 11 base-only patterns; 10 cases have no strict match. It reports patient and pattern counts separately. The set is synthetic and is not the paper's clinical cohort.
+At `c >= 0`, the complete base solver and the existing strict solver agree with every expected case. The endpoint heuristics miss ME14. The playground starts with 47 base patterns among 43 patients, 36 strict patterns among 33 patients, and 11 base-only patterns; 10 cases have no strict match. It reports patient and pattern counts separately. The set is synthetic and is not the paper's clinical cohort.
 
 ### Clinical data and alternatives
 

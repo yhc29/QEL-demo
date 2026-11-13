@@ -786,6 +786,88 @@
     return matches;
   }
 
+  // Complete for the base PGES formula at observed endpoints, on finite closed
+  // input intervals. Decimal Number values are interpreted by their JS string.
+  function findMatchesComplete(record, query) {
+    if (query.kind !== "pges" || query.strict) return findMatches(record, query);
+    const gcd = (a,b) => b ? gcd(b,a%b) : (a < 0n ? -a : a);
+    const rat = value => {
+      const s = String(value).toLowerCase().split('e');
+      const parts = s[0].split('.');
+      const digits = (parts[0] + (parts[1] || ''));
+      let n = BigInt(digits), d = 10n ** BigInt((parts[1] || '').length);
+      const exp = Number(s[1] || 0);
+      if (exp > 0) n *= 10n ** BigInt(exp); else if (exp < 0) d *= 10n ** BigInt(-exp);
+      const g = gcd(n,d); return [n/g,d/g];
+    };
+    const cmp = (a,b) => a[0]*b[1] < b[0]*a[1] ? -1 : a[0]*b[1] > b[0]*a[1] ? 1 : 0;
+    const subR = (a,b) => [a[0]*b[1]-b[0]*a[1],a[1]*b[1]];
+    const mid = (a,b) => [a[0]*b[1]+b[0]*a[1],2n*a[1]*b[1]];
+    const num = a => Number(a[0])/Number(a[1]);
+    const raw = record.events;
+    const intervals = label => {
+      const source = raw && Array.isArray(raw[label]) ? raw[label].map(p => ({a:p[0],b:p[1],lc:true,rc:true})) : (record.supports[label] || []);
+      return source.map(i => {
+        if (!Number.isFinite(i.a) || !Number.isFinite(i.b) || i.lc === false || i.rc === false) throw new Error('Complete PGES search requires finite closed input intervals');
+        return {a:rat(i.a),b:rat(i.b)};
+      }).sort((a,b) => cmp(a.a,b.a));
+    };
+    // Merge closed components exactly, without the tolerance used by norm().
+    const merged = label => {
+      const out=[];
+      for (const i of intervals(label)) {
+        const last=out[out.length-1];
+        if (last && cmp(i.a,last.b)<=0) { if (cmp(i.b,last.b)>0) last.b=i.b; }
+        else out.push({...i});
+      }
+      return out;
+    };
+    const S=merged('S'), T=merged('T'), C=merged('C'), P=merged('P');
+    const points=['S','T','C','P'].flatMap(label => intervals(label).flatMap(i => [i.a,i.b]));
+    const minimum=rat(query.cMin || 0), zero=rat(0), matches=[];
+    if (cmp(minimum,zero)<0) throw new Error('cMin must be nonnegative');
+    for (let si=0; si<S.length; si++) {
+      const s=S[si]; let result=null;
+      for (const x of points) {
+        if (result) break;
+        if (cmp(x,s.a)<0 || cmp(x,s.b)>=0) continue;
+        for (const t of T) {
+          if (result) break;
+          if (cmp(t.b,x)<0) continue;
+          const lowerY=cmp(x,t.a)>0 ? x : t.a;
+          for (const cv of C) {
+            if (result) break;
+            if (cmp(cv.b,lowerY)<=0) continue;
+            for (const p of P) {
+              // z > lowerY and C.a; z >= P.a. Upper bounds are S.b,
+              // P.b (strict because c>0), and P.b-cMin.
+              let lo=lowerY, loStrict=true;
+              const lower=(v,strict) => { const k=cmp(v,lo); if(k>0){lo=v;loStrict=strict;} else if(k===0) loStrict ||= strict; };
+              lower(cv.a,true); lower(p.a,false);
+              let hi=s.b, hiStrict=false;
+              const upper=(v,strict) => { const k=cmp(v,hi); if(k<0){hi=v;hiStrict=strict;} else if(k===0) hiStrict ||= strict; };
+              upper(p.b,true); upper(subR(p.b,minimum),false);
+              const order=cmp(lo,hi);
+              if (order>0 || (order===0 && (loStrict || hiStrict))) continue;
+              const z=order===0 ? lo : mid(lo,hi);
+              const yUpper=cmp(z,cv.b)<0 ? z : cv.b;
+              if (cmp(lowerY,yUpper)>=0) continue;
+              const y=mid(lowerY,yUpper), c=subR(p.b,z);
+              const xv=num(x), av=num(subR(y,x)), bv=num(subR(z,y)), cvn=num(c), zv=num(z);
+              const env={x:xv,a:av,b:bv,c:cvn};
+              result={patientId:record.id,sIndex:si,...env,y:zv,offset:zv,
+                used:findUsed(record,xv,av,bv,cvn,'pges'), support:support(PGES_BODY,env,record), complete:true,
+                exactWitness:{x:x.map(String),a:subR(y,x).map(String),b:subR(z,y).map(String),c:c.map(String)}};
+              break;
+            }
+          }
+        }
+      }
+      if (result) matches.push(result);
+    }
+    return matches;
+  }
+
   root.QELCore = Object.freeze({
     EPS,
     TOL,
@@ -838,6 +920,7 @@
     findMatches,
     boundaryPoints,
     finiteCellPoints,
-    findMatchesFiniteCell
+    findMatchesFiniteCell,
+    findMatchesComplete
   });
 })(typeof globalThis !== "undefined" ? globalThis : this);
