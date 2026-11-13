@@ -6,7 +6,7 @@
   const STRICT_QUIET = 10;
 
   /* ---------- interval ensembles ---------- */
-  function iv(a, b, lc = true, rc = true) { return { a, b, lc, rc }; }
+  function iv(a, b, lc = true, rc = false) { return { a, b, lc, rc }; }
   function isEmpty(x) {
     return x.a > x.b + TOL || (Math.abs(x.a - x.b) <= TOL && !(x.lc && x.rc));
   }
@@ -310,7 +310,7 @@
         if (!value || !Number.isFinite(value.a) || !Number.isFinite(value.b) || value.a > value.b) {
           throw new Error(`Invalid interval for ${label}`);
         }
-        return iv(value.a, value.b, value.lc !== false, useHalfOpen ? false : value.rc !== false);
+        return iv(value.a, value.b, true, false);
       }));
     }
     return { id: caseData.id, supports };
@@ -786,7 +786,7 @@
     return matches;
   }
 
-  // Complete for the base PGES formula at observed endpoints, on finite closed
+  // Complete for the base PGES formula at observed endpoints, on finite left-closed, right-open
   // input intervals. Decimal Number values are interpreted by their JS string.
   function findMatchesComplete(record, query) {
     if (query.kind !== "pges" || query.strict) return findMatches(record, query);
@@ -806,13 +806,13 @@
     const num = a => Number(a[0])/Number(a[1]);
     const raw = record.events;
     const intervals = label => {
-      const source = raw && Array.isArray(raw[label]) ? raw[label].map(p => ({a:p[0],b:p[1],lc:true,rc:true})) : (record.supports[label] || []);
+      const source = raw && Array.isArray(raw[label]) ? raw[label].map(p => ({a:p[0],b:p[1],lc:true,rc:false})) : (record.supports[label] || []);
       return source.map(i => {
-        if (!Number.isFinite(i.a) || !Number.isFinite(i.b) || i.lc === false || i.rc === false) throw new Error('Complete PGES search requires finite closed input intervals');
+        if (!Number.isFinite(i.a) || !Number.isFinite(i.b) || i.lc === false || i.rc !== false) throw new Error('Complete PGES search requires finite left-closed, right-open input intervals');
         return {a:rat(i.a),b:rat(i.b)};
-      }).sort((a,b) => cmp(a.a,b.a));
+      }).filter(i => cmp(i.a,i.b)<0).sort((a,b) => cmp(a.a,b.a));
     };
-    // Merge closed components exactly, without the tolerance used by norm().
+    // Merge half-open components exactly, without the tolerance used by norm().
     const merged = label => {
       const out=[];
       for (const i of intervals(label)) {
@@ -833,7 +833,7 @@
         if (cmp(x,s.a)<0 || cmp(x,s.b)>=0) continue;
         for (const t of T) {
           if (result) break;
-          if (cmp(t.b,x)<0) continue;
+          if (cmp(t.b,x)<=0) continue;
           const lowerY=cmp(x,t.a)>0 ? x : t.a;
           for (const cv of C) {
             if (result) break;

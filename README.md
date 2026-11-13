@@ -64,7 +64,7 @@ Open:
   - **Complete base PGES** (default) — exact constraint search at observed anchors; strict and GTC fall back to the optimized search.
   - **Optimized witness search** and **Boundary scan** — endpoint-based heuristics; both can miss matches.
 - Audit panel with the selected witness, per-conjunct checks, and matched pattern details.
-- Custom formula results call `QELCore.queryFormula` for every case and show the first witness per matched case. The builder reports query errors inline and allows half-open event boundaries.
+- Custom formula results call `QELCore.queryFormula` for every case and show the first witness per matched case. The builder reports query errors inline with half-open event boundaries.
 - Results table that reports matched patterns and patients separately for base, strict, and base-only queries.
 
 ### Algorithms 1–3
@@ -107,7 +107,7 @@ const display = QELCore.formatFormula(ast); // { string, html } for QEL notation
 const support = QELCore.evaluateFormulaString(preparedRecord, ast, { a: 10, b: 5 });
 ```
 
-The parser accepts any event label in the case, plus `noevent` for the complement of all case events; `diamond(duration, formula)` (also `dia`), `box(duration, formula)`, `box_neg(duration, formula)`, `diamond_neg(duration, formula)`, `shift(offset, formula)`, `neg(formula)` (also `not`), `and(left, right)`, and `or(left, right)`. `box_neg(t, P)` means `box(t, neg(P))`; `diamond_neg(t, P)` means `diamond(t, neg(P))`. Time terms support numbers, named variables, addition, subtraction, and parentheses. `queryFormula(formulaString, caseData)` derives positive duration candidates from every interval endpoint and every positive difference between endpoints. Variables used only by `shift` may also take zero or negative endpoint differences. It returns the first satisfying assignment and its reference point `x`. Pass `{ halfOpen: true }` as the third argument for strict boundary semantics. For a case with many endpoints, `{ maxEvaluations: n }` sets the search limit; reaching it throws an error instead of reporting a false nonmatch. The playground's Custom formula mode calls this API for each case.
+The parser accepts any event label in the case, plus `noevent` for the complement of all case events; `diamond(duration, formula)` (also `dia`), `box(duration, formula)`, `box_neg(duration, formula)`, `diamond_neg(duration, formula)`, `shift(offset, formula)`, `neg(formula)` (also `not`), `and(left, right)`, and `or(left, right)`. `box_neg(t, P)` means `box(t, neg(P))`; `diamond_neg(t, P)` means `diamond(t, neg(P))`. Time terms support numbers, named variables, addition, subtraction, and parentheses. `queryFormula(formulaString, caseData)` derives positive duration candidates from every interval endpoint and every positive difference between endpoints. Variables used only by `shift` may also take zero or negative endpoint differences. It returns the first satisfying assignment and its reference point `x`. Input intervals use left-closed, right-open semantics. For a case with many endpoints, `{ maxEvaluations: n }` sets the search limit; reaching it throws an error instead of reporting a false nonmatch. The playground's Custom formula mode calls this API for each case.
 
 The PGES body is:
 
@@ -115,15 +115,15 @@ The PGES body is:
 □_{a+b}S ∧ ◊_aT ∧ (◊_bC)_a ∧ (□_cP)_{a+b}
 ```
 
-The strict body adds a 10 s no-event prefix and the exclusions `S∧¬P`, `T∧¬C`, `C∧¬T`, and `P∧¬S`. Strict supports are evaluated as half-open intervals, so adjacent boundaries meet rather than overlap.
+The strict body adds a 10 s no-event prefix and the exclusions `S∧¬P`, `T∧¬C`, `C∧¬T`, and `P∧¬S`. All input supports are evaluated as half-open intervals, so adjacent boundaries meet rather than overlap.
 
 A candidate is accepted when the formula support contains the reference point `x`.
 
 ## Solver paths
 
-`findMatchesComplete(record, query)` is complete for the base PGES formula over finite, closed input intervals, when the reference point `x` is restricted to observed S/T/C/P endpoints. It enumerates those anchors and interval components, then solves the ordering and coverage inequalities using exact rational arithmetic. It does not restrict the split or seizure offset to observed endpoints. The suppression filter is included in those inequalities. JavaScript input numbers are interpreted as the decimal values in their `String(number)` representation; precision already lost during JSON parsing cannot be recovered. The returned `exactWitness` records rational numerator/denominator pairs. Displayed witnesses and support audits use floating-point arithmetic and may be inaccurate for extremely close endpoints.
+`findMatchesComplete(record, query)` is complete for the base PGES formula over finite, left-closed, right-open input intervals, when the reference point `x` is restricted to observed S/T/C/P endpoints. It enumerates those anchors and interval components, then solves the ordering and coverage inequalities using exact rational arithmetic. It does not restrict the split or seizure offset to observed endpoints. The suppression filter is included in those inequalities. JavaScript input numbers are interpreted as the decimal values in their `String(number)` representation; precision already lost during JSON parsing cannot be recovered. The returned `exactWitness` records rational numerator/denominator pairs. Displayed witnesses and support audits use floating-point arithmetic and may be inaccurate for extremely close endpoints.
 
-The proof follows from writing `y=x+a` and `z=x+a+b`: for each anchor and relevant S, T, C, and P component, the existence of a witness is equivalent to the interval inequalities checked by the solver. It chooses an interior rational when a strict inequality requires one. It reports at most one witness per S component, not every possible witness. It does not claim completeness for arbitrary real-valued anchors, open input intervals, GTC, strict PGES, or custom formulas. Open or nonfinite intervals passed directly to this path are rejected. GTC and strict queries use the existing optimized path.
+The proof follows from writing `y=x+a` and `z=x+a+b`: for each anchor and relevant S, T, C, and P component, the existence of a witness is equivalent to the interval inequalities checked by the solver. It chooses an interior rational when a strict inequality requires one. It reports at most one witness per S component, not every possible witness. It does not claim completeness for arbitrary real-valued anchors, open input intervals, GTC, strict PGES, or custom formulas. Intervals passed directly to this path must be finite and left-closed, right-open. GTC and strict queries use the existing optimized path.
 
 `findMatches` and `findMatchesFiniteCell` are retained as endpoint heuristics. They are incomplete: ME14 has S=T=C=[0,2] and P=[2,3], and both miss the valid witness (0,1,1,1). `finiteCellPoints` is an endpoint alias, not an implementation of the paper's complete cell construction. These older paths and the general support evaluator use `EPS = 1e-6` and `TOL = 1e-9`, so near-boundary results may differ from exact semantics. The algorithm demonstration's boundary scan is illustrative and is not a complete implementation of the paper's construction.
 
@@ -148,7 +148,7 @@ You can use other labeled temporal data in place of the example set. Convert eac
 
 ### JSON dataset format
 
-Use a JSON object with a required top-level `cases` array. Each case needs a unique `id` and an `events` object. Event labels may be any identifier that starts with a letter or underscore and continues with letters, digits, or underscores; `noevent` is reserved. Each event maps to an array of closed `[start, end]` intervals in seconds; an empty array means that event is absent. Endpoints must be finite numbers and `start` must not exceed `end`.
+Use a JSON object with a required top-level `cases` array. Each case needs a unique `id` and an `events` object. Event labels may be any identifier that starts with a letter or underscore and continues with letters, digits, or underscores; `noevent` is reserved. Each event maps to an array of left-closed, right-open `[start, end)` intervals in seconds; an empty array means that event is absent. Endpoints must be finite numbers and `start` must not exceed `end`.
 
 ```json
 {

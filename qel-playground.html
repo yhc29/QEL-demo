@@ -675,7 +675,7 @@
       <div class="builder-fields" id="builderFields"></div>
       <label class="panel-label" for="builderFormula" style="display:block;margin-top:12px">Formula string</label>
       <textarea class="builder-formula" id="builderFormula" spellcheck="false" aria-describedby="builderHelp builderError"></textarea>
-      <label class="hint" style="display:inline-flex;align-items:center;gap:7px;margin-top:8px"><input type="checkbox" id="customHalfOpen"> Treat event intervals as half-open</label>
+      <label class="hint" style="display:inline-flex;align-items:center;gap:7px;margin-top:8px"><input type="checkbox" id="customHalfOpen" checked disabled> Event intervals are left-closed, right-open</label>
       <p class="hint" id="builderHelp">Syntax: box(a+b,S), diamond(a,T), box_neg(a,P), diamond_neg(b,C), shift(a,diamond(b,C)), neg(P). Use and(left,right) to combine clauses.</p>
       <p class="builder-error" id="builderError" role="alert"></p>
     </div>
@@ -761,7 +761,7 @@
     <div class="explainer-grid">
       <article class="explain-card">
         <h3>Interval-ensemble semantics</h3>
-        <p>Each label is a finite union of closed intervals. Displacement, ◊, and □ are implemented as endpoint translation, future-window dilation, and future-window erosion; conjunction is intersection.</p>
+        <p>Each label is a finite union of left-closed, right-open intervals. Displacement, ◊, and □ are implemented as endpoint translation, future-window dilation, and future-window erosion; conjunction is intersection.</p>
       </article>
       <article class="explain-card">
         <h3>Finite witnesses, not sampling</h3>
@@ -940,7 +940,7 @@
     results: null,
     comparison: null,
     customFormula: PRESET_FORMULAS.pges,
-    customHalfOpen: false,
+    customHalfOpen: true,
     customSource: "pges"
   };
 
@@ -1112,7 +1112,7 @@
     const query = currentQuery();
     if (els.solverHint) {
       els.solverHint.textContent = query.solver === "complete"
-        ? "Complete for base PGES at observed anchors, for finite closed inputs; strict and GTC use the incomplete optimized search."
+        ? "Complete for base PGES at observed anchors, for finite left-closed, right-open inputs; strict and GTC use the incomplete optimized search."
         : "Endpoint search is incomplete and may miss valid matches.";
     }
     state.results = evaluateQuery(query);
@@ -1184,7 +1184,7 @@
     els.cMinLabel.textContent = pges ? "Suppression witness filter" : "Suppression filter (PGES only)";
     els.cMinVal.textContent = pges ? String(state.cMin) : "—";
     if (strict) {
-      els.queryHint.innerHTML = `<strong>PGES strict (one formula):</strong> x is the pre-ictal anchor, so S starts at x+${STRICT_QUIET}. The conjuncts require a ${STRICT_QUIET} s no-event prefix, S without P, T without C, C without T, and P without S postictally. Strict supports are half-open, so a boundary meet is not an overlap; c is the maximal P∧¬S run before the filter.`;
+      els.queryHint.innerHTML = `<strong>PGES strict (one formula):</strong> x is the pre-ictal anchor, so S starts at x+${STRICT_QUIET}. The conjuncts require a ${STRICT_QUIET} s no-event prefix, S without P, T without C, C without T, and P without S postictally. Input intervals are half-open, so a boundary meet is not an overlap; c is the maximal P∧¬S run before the filter.`;
     } else if (pges) {
       els.queryHint.innerHTML = "<strong>PGES base (permissive):</strong> T only has to occur in the tonic window and C in the clonic window. Their intervals may overlap or extend outside S, and P may start before the offset. The slider adds c ≥ n seconds. Use PGES strict for the exact formula.";
     } else {
@@ -1230,7 +1230,7 @@
     if (els.sumRecords) els.sumRecords.textContent = DATASET.length ? String(DATASET.length) : "—";
     if (els.datasetInfo) {
       if (DATASET.length) {
-        els.datasetInfo.textContent = `${DATASET.length} cases · 0–${AXIS_MAX} s · closed intervals; strict uses half-open meets`;
+        els.datasetInfo.textContent = `${DATASET.length} cases · 0–${AXIS_MAX} s · left-closed, right-open intervals`;
       } else {
         els.datasetInfo.textContent = DATASET_ERROR ? "Evaluation set unavailable" : "Loading 54-case evaluation set…";
       }
@@ -1682,7 +1682,7 @@
       if (button.dataset.preset === "custom" && state.preset !== "custom") {
         state.customSource = state.preset;
         state.customFormula = PRESET_FORMULAS[state.preset];
-        state.customHalfOpen = state.preset === "strict";
+        state.customHalfOpen = true;
         renderBuilder();
       }
       state.preset = button.dataset.preset;
@@ -1714,7 +1714,7 @@
     state.cMin = 0;
     state.solver = "complete";
     state.customFormula = PRESET_FORMULAS.pges;
-    state.customHalfOpen = false;
+    state.customHalfOpen = true;
     state.customSource = "pges";
     els.builderError.textContent = "";
     state.selectedId = DATASET[0] ? DATASET[0].id : null;
@@ -1767,7 +1767,7 @@
     }));
     downloadJSON({
       name: "pges-manual-eval-current",
-      description: "Synthetic BEST records for the current QEL evaluation set. Times are in seconds; intervals are closed.",
+      description: "Synthetic BEST records for the current QEL evaluation set. Times are in seconds; intervals are left-closed, right-open.",
       axis_seconds: [0, AXIS_MAX],
       labels: ["S", "T", "C", "P"],
       cases: records
