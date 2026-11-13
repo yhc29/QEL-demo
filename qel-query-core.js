@@ -786,10 +786,11 @@
     return matches;
   }
 
-  // Complete for the base PGES formula at observed endpoints, on finite left-closed, right-open
+  // Complete for base and strict PGES at observed seizure-window anchors, on finite left-closed, right-open
   // input intervals. Decimal Number values are interpreted by their JS string.
   function findMatchesComplete(record, query) {
-    if (query.kind !== "pges" || query.strict) return findMatches(record, query);
+    if (query.kind !== "pges") return findMatches(record, query);
+    const strict = !!query.strict;
     const gcd = (a,b) => b ? gcd(b,a%b) : (a < 0n ? -a : a);
     const rat = value => {
       const s = String(value).toLowerCase().split('e');
@@ -822,14 +823,38 @@
       }
       return out;
     };
-    const S=merged('S'), T=merged('T'), C=merged('C'), P=merged('P');
+    const originalS=merged('S'), originalT=merged('T'), originalC=merged('C'), originalP=merged('P');
+    const difference = (left,right) => {
+      const result=[];
+      for (const i of left) {
+        let pos=i.a;
+        for (const j of right) {
+          if (cmp(j.b,pos)<=0) continue;
+          if (cmp(j.a,i.b)>=0) break;
+          if (cmp(j.a,pos)>0) result.push({a:pos,b:j.a});
+          if (cmp(j.b,pos)>0) pos=j.b;
+          if (cmp(pos,i.b)>=0) break;
+        }
+        if (cmp(pos,i.b)<0) result.push({a:pos,b:i.b});
+      }
+      return result;
+    };
+    const S=strict ? difference(originalS,originalP) : originalS;
+    const T=strict ? difference(originalT,originalC) : originalT;
+    const C=strict ? difference(originalC,originalT) : originalC;
+    const P=strict ? difference(originalP,originalS) : originalP;
+    const labels = Object.keys(raw || record.supports || {});
+    const allEvents = labels.flatMap(label => merged(label));
+    const quiet=rat(STRICT_QUIET);
     const points=['S','T','C','P'].flatMap(label => intervals(label).flatMap(i => [i.a,i.b]));
-    const minimum=rat(query.cMin || 0), zero=rat(0), matches=[];
+    const minimum=rat(query.cMin || 0), zero=rat(0), matches=[], seenComponents=new Set();
     if (cmp(minimum,zero)<0) throw new Error('cMin must be nonnegative');
     for (let si=0; si<S.length; si++) {
       const s=S[si]; let result=null;
       for (const x of points) {
         if (result) break;
+        const anchor = strict ? subR(x,quiet) : x;
+        if (strict && allEvents.some(i => cmp(i.a,x)<0 && cmp(i.b,anchor)>0)) continue;
         if (cmp(x,s.a)<0 || cmp(x,s.b)>=0) continue;
         for (const t of T) {
           if (result) break;
@@ -854,16 +879,18 @@
               if (cmp(lowerY,yUpper)>=0) continue;
               const y=mid(lowerY,yUpper), c=subR(p.b,z);
               const xv=num(x), av=num(subR(y,x)), bv=num(subR(z,y)), cvn=num(c), zv=num(z);
-              const env={x:xv,a:av,b:bv,c:cvn};
-              result={patientId:record.id,sIndex:si,...env,y:zv,offset:zv,
-                used:findUsed(record,xv,av,bv,cvn,'pges'), support:support(PGES_BODY,env,record), complete:true,
-                exactWitness:{x:x.map(String),a:subR(y,x).map(String),b:subR(z,y).map(String),c:c.map(String)}};
+              const ref = strict ? num(anchor) : xv;
+              const env={x:ref,a:av,b:bv,c:cvn};
+              result={patientId:record.id,sIndex:strict ? originalS.findIndex(i => cmp(x,i.a)>=0 && cmp(x,i.b)<0) : si,...env,y:zv,offset:zv,
+                used:strict ? findUsedStrict(record,ref,av,bv,cvn) : findUsed(record,xv,av,bv,cvn,'pges'), support:support(strict ? STRICT_BODY : PGES_BODY,env,record), complete:true,
+                ...(strict ? {strict:true,formula:'strict',sStart:xv,tonicEnd:num(y),pEnd:num(p.b)} : {}),
+                exactWitness:{x:(strict ? anchor : x).map(String),a:subR(y,x).map(String),b:subR(z,y).map(String),c:c.map(String)}};
               break;
             }
           }
         }
       }
-      if (result) matches.push(result);
+      if (result && !seenComponents.has(result.sIndex)) { matches.push(result); seenComponents.add(result.sIndex); }
     }
     return matches;
   }

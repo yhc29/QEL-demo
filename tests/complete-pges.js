@@ -22,6 +22,11 @@ const emptyT=record({S:[[0,2]],T:[[0,0]],C:[[0,2]],P:[[2,3]]});
 assert.equal(q.findMatchesComplete(emptyT,query).length,0);
 assert.equal(q.contains([q.iv(0,2)],2),false);
 assert.equal(q.contains([q.iv(0,2)],0),true);
+const strictTiny=record({S:[[10,10.000000004]],T:[[10,10.000000001]],C:[[10.000000002,10.000000004]],P:[[10.000000004,11]]});
+assert.equal(q.findMatchesComplete(strictTiny,{...query,strict:true}).length,1);
+assert.equal(q.findMatches(strictTiny,{...query,strict:true}).length,0);
+const noQuiet=record({S:[[10,12]],T:[[10,11]],C:[[11,12]],P:[[12,13]],X:[[5,6]]});
+assert.equal(q.findMatchesComplete(noQuiet,{...query,strict:true}).length,0);
 const data=require('../pges-manual-eval.json');
 for(const c of data.cases) {
   const r=record(c.events); r.id=c.id;

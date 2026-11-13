@@ -639,11 +639,11 @@
         <div class="solver-row">
           <label class="panel-label" for="solverMode">Solver</label>
           <select id="solverMode" class="solver-select">
-            <option value="complete" selected>Complete base PGES (observed anchors)</option>
+            <option value="complete" selected>Complete PGES (observed seizure anchors)</option>
             <option value="optimized">Optimized witness search (incomplete)</option>
             <option value="paper">Boundary scan (incomplete)</option>
           </select>
-          <span class="solver-hint" id="solverHint">Complete for base PGES at observed anchors; other presets use the optimized search.</span>
+          <span class="solver-hint" id="solverHint">Complete for base and strict PGES at observed seizure anchors; GTC uses the optimized search.</span>
         </div>
         <div class="eval-row">
           <span class="panel-label">Evaluation set</span>
@@ -1112,7 +1112,7 @@
     const query = currentQuery();
     if (els.solverHint) {
       els.solverHint.textContent = query.solver === "complete"
-        ? "Complete for base PGES at observed anchors, for finite left-closed, right-open inputs; strict and GTC use the incomplete optimized search."
+        ? "Complete for base and strict PGES at observed seizure anchors, for finite left-closed, right-open inputs; GTC uses the incomplete optimized search."
         : "Endpoint search is incomplete and may miss valid matches.";
     }
     state.results = evaluateQuery(query);
